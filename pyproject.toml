@@ -1,15 +1,20 @@
 [tool.poetry]
 name = "bettersafethansorry"
 version = "0.1.0"
-description = "'Better Safe than Sorry' backup application"
+description = "Configurable backup application"
 authors = ["Maarten De Munck <maarten@vijfendertig.be>"]
+maintainers = ["Maarten De Munck <maarten@vijfendertig.be>"]
 readme = "README.md"
 license = "GPL-3.0-only"
+repository = "https://gitea.home.vijfendertig.be/maarten/bettersafethansorry"
+keywords = ["Backup"]
 
 [tool.poetry.dependencies]
-python = "^3.10"
-
+python = "^3.6"
 
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
+
+[tool.poetry.scripts]
+bsts = "bettersafethansorry.cli:run"
