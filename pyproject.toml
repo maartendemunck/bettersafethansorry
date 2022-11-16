@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "'Better Safe than Sorry' backup application"
 authors = ["Maarten De Munck <maarten@vijfendertig.be>"]
 readme = "README.md"
+license = "GPL-3.0-only"
 
 [tool.poetry.dependencies]
 python = "^3.10"
