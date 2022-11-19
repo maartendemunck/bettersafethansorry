@@ -12,20 +12,22 @@ logger = logging.getLogger(__name__)
 class Configuration:
 
     def __init__(self):
-        self.configuration = None
+        self.config = None
 
     def load_yaml(self, filename):
         logger.debug("Using YAML loader {}".format(SafeLoader))
-        logger.info("Reading configuration file '{}'".format(filename))
+        logger.info("Reading config file '{}'".format(filename))
         with open(filename, mode="rt", encoding="utf-8") as file:
-            self.configuration = yaml.load(file, SafeLoader)
-    
+            self.config = yaml.load(file, SafeLoader)
+
     def list_backups(self):
-        return self.configuration['backups'].keys()
+        return self.config['backups'].keys()
+
+    def get_backup_config(self, backup):
+        return self.config['backups'][backup]['actions']
 
 
 def load_yaml(filename):
-    configuration = Configuration()
-    configuration.load_yaml(filename)
-    return configuration
-
+    config = Configuration()
+    config.load_yaml(filename)
+    return config
