@@ -1,3 +1,4 @@
+import logging
 import subprocess
 
 
@@ -19,7 +20,8 @@ class ArchiveDirectory:
 
     def __init__(self, action_config, logger):
         self.logger = logger
-        self.logger.info('Initialising ArchiveDirectory')
+        self.logger.log_message(
+            logging.DEBUG, "Initialising 'ArchiveDirectory' action")
         self.config = action_config
         for key in ArchiveDirectory.required_keys:
             if key not in action_config:
@@ -33,9 +35,7 @@ class ArchiveDirectory:
     def has_do(self):
         return True
 
-    def do(self, dry_run):
-        # Create source command (tar + ssh for remote sources).
-        self.logger.debug("Configuring 'ArchiveDirectory' action")
+    def __compose_source_command(self):
         tar_cmd = [
             '/usr/bin/tar',
             '--directory={}'.format(self.config['source-directory']),
@@ -61,7 +61,9 @@ class ArchiveDirectory:
             ]
         else:
             source_cmd = tar_cmd
-        # Create local compression command.
+        return source_cmd
+
+    def __compose_compression_command(self):
         if self.config['compression']:
             compression_cmd = self.config['compression'].split(' ')
         elif self.config['source-host'] is None and self.config['source-compression']:
@@ -70,7 +72,9 @@ class ArchiveDirectory:
             compression_cmd = self.config['destination-compression'].split(' ')
         else:
             compression_cmd = None
-        # Create destination commmand.
+        return compression_cmd
+
+    def __compose_destination_command(self):
         if self.config['destination-host']:
             cmd_string = 'cat'
             if self.config['destination-compression']:
@@ -83,12 +87,30 @@ class ArchiveDirectory:
                 self.config['destination-host'],
                 cmd_string
             ]
-            destination_filename = None
         else:
             destination_cmd = None
+        return destination_cmd
+
+    def __compose_destination_filename(self):
+        if self.config['destination-host']:
+            destination_filename = None
+        else:
             # TODO: write to temp file first
             destination_filename = self.config['destination-file']
+        return destination_filename
+
+    def do(self, dry_run):
+        self.logger.log_message(
+            logging.DEBUG, "Configuring 'ArchiveDirectory' action")
+        # Create commands from action configuration.
+        source_cmd = self.__compose_source_command()
+        compression_cmd = self.__compose_compression_command()
+        destination_cmd = self.__compose_destination_command()
+        destination_filename = self.__compose_destination_filename()
         # Run commands.
+        self.logger.log_message(
+            logging.DEBUG, "Executing 'ArchiveDirectory' action")
+        errors = []
         if not dry_run:
             if destination_filename is not None:
                 destination_file = open(destination_filename, "wb")
@@ -113,24 +135,17 @@ class ArchiveDirectory:
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE))
             (stdout, stderr) = processes[-1].communicate()
+            for line in stderr:
+                logger.log_message(logging.DEBUG, line)
             exit_code = processes[0].wait()
             if destination_file is not None:
                 destination_file.close()
-            return False if exit_code == 0 else True
-        else:
-            cmd_string = ' '.join(source_cmd)
-            if compression_cmd is not None:
-                cmd_string += ' | ' + ' '.join(compression_cmd)
-            if destination_cmd is not None:
-                cmd_string += ' | ' + ' '.join(destination_cmd)
-            if destination_filename is not None:
-                cmd_string += ' > {}'.format(destination_filename)
-            print(cmd_string)
-            return False
-        # Done.
+            if exit_code != 0:
+                errors.extend(stderr)
+        return errors
 
     def has_check(self):
         return False
 
     def check(self):
-        return False
+        return ['Not implemented']
