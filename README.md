@@ -16,38 +16,52 @@ To make things a bit easier to maintain, I started writing Better Safe Than Sorr
 
 ## Usage
 
+Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
+
+Positional arguments:
+
+- `command`: `list` or `do`
+- `backup`: backup to perform (as defined in the configuration file)
+
+Options:
+
+- `-h` or `--help`: show this help message and exit
+- `-c CONFIG` or `--config CONFIG`: select configuration file
+- `-n` or `--dry-run`: do not actually perform actions, only log them
+
 ## Roadmap
 
 Backup functions:
 
-- [ ] Copy files and directories, both local and remote
-- [ ] Archive files, directories and filesystems, both local and remote
+- [ ] Backup files and directories, both local and remote
+- [X] Archive files, directories and filesystems, both local and remote
+- [ ] Archive files, directories and filesystems from docker containers, both local and remote
 - [ ] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
 - [ ] Backup PostgreSQL database
 - [ ] Backup Git repositories
 - [ ] Backup Subversion repositories
-- [ ] Backup files and directories from a docker container
-- [ ] Archive files, directories and filesystems from a docker container
+- [ ] Backup Git-annex repositories
 - [ ] Backup PostgreSQL containers
+- [ ] Verify backups
 
 Backup configuration:
 
-- [ ] Actions
+- [X] Actions
 - [ ] Variable substitution
-- [ ] Logging
+- [X] Logging
 - [ ] Action templates
 
-Backup orchestrator:
+Backup operation:
 
-- [ ] Manual invocation
+- [X] Manual invocation
 - [ ] Store timestamps
 - [ ] Automatic backups based on timestamps
-- [ ] Warning for backups that are too old
+- [ ] Warnings for backups that are too old
 
 ## License
 
-Better Safe than Sorry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
+Better Safe Than Sorry is free software: you can redistribute it and/or modify it under the terms of the GNU General Public License version 3 as published by the Free Software Foundation.
 
 This program is distributed in the hope that it will be useful, but WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the GNU General Public License for more details.
 
