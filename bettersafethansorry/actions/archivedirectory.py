@@ -136,12 +136,15 @@ class ArchiveDirectory:
                     stderr=subprocess.PIPE))
             (stdout, stderr) = processes[-1].communicate()
             for line in stderr:
-                logger.log_message(logging.DEBUG, line)
+                self.logger.log_message(logging.DEBUG, line)
             exit_code = processes[0].wait()
             if destination_file is not None:
                 destination_file.close()
             if exit_code != 0:
                 errors.extend(stderr)
+        else:
+            self.logger.log_message(
+                logging.INFO, 'Dry run, not performing actual actions')
         return errors
 
     def has_check(self):

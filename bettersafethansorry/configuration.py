@@ -32,6 +32,12 @@ class Configuration:
     def get_backup_config(self, backup):
         return self.config['backups'][backup]
 
+    def get_loggers(self):
+        if 'loggers' in self.config:
+            return self.config['loggers']
+        else:
+            return []
+
 
 def load_yaml(filename, logger):
     config = Configuration(logger)

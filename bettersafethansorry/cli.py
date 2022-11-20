@@ -2,23 +2,15 @@ import argparse
 import bettersafethansorry.configuration as bsts_configuration
 import bettersafethansorry.operation as bsts_operation
 import bettersafethansorry.loggers as bsts_loggers
+import errno
 import logging
 import os
 import sys
 
 
 def run():
-    # Configure a (Python logging) logger.
-    logging.basicConfig(level=logging.DEBUG, handlers=[])
-    python_logger = logging.getLogger('BSTS')
-    # Configure a (Python logging) handler to INFO messages to the console
-    console_handler = logging.StreamHandler(sys.stderr)
-    console_handler.setLevel(logging.INFO)
-    console_handler.setFormatter(logging.Formatter('%(message)s'))
-    python_logger.addHandler(console_handler)
-    # Create the master logger and add the Python logging logger with the console handler to it.
+    # Configure the master logger.
     logger = bsts_loggers.MasterLogger()
-    logger.add_logger(bsts_loggers.PythonLoggingLogger(python_logger))
 
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
@@ -40,7 +32,15 @@ def run():
             '~/.config/bettersafethansorry/config.yaml')
     config = bsts_configuration.load_yaml(config_file, logger)
     if config is None:
-        exit(2)
+        sys.exit(errno.EINVAL)
+
+    # Configure additional loggers.
+    errors = []
+    for logger_config in config.get_loggers():
+        error = logger.add_logger(logger_config)
+        errors.extend(error)
+    if len(errors) > 0:
+        exit(errno.EINVAL)
 
     # Run command.
     if args.command.lower() == 'list':
@@ -50,20 +50,23 @@ def run():
         dry_run = True if args.dry_run else False
         if (args.backup is None):
             logger.log_message(logging.ERROR, "No backup specified")
-            exit(2)
+            sys.exit(errno.EINVAL)
         try:
             backup_config = config.get_backup_config(args.backup)
         except KeyError:
             logger.log_message(
                 logging.ERROR, "Backup '{}' not found in config file".format(args.backup))
-            exit(2)
+            sys.exit(errno.EINVAL)
         error = bsts_operation.run_backup(backup_config, dry_run, logger)
-        if error:
-            logger.log_message(
-                logging.ERROR, "Error(s) encountered while making backup '{}'".format(args.backup))
+        if error is not None and len(error) > 0:
+            exit(errno.EIO)
     else:
         logger.log_message(
             logging.ERROR, "Unknown command '{}'".format(args.command))
+        exit(errno.EINVAL)
+
+    # Exit
+    sys.exit(0)
 
 
 if __name__ == '__main__':
