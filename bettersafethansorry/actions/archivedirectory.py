@@ -1,5 +1,6 @@
 import logging
 import subprocess
+import bettersafethansorry.actions as bsts_actions
 
 
 class ArchiveDirectory:
@@ -15,7 +16,7 @@ class ArchiveDirectory:
         'compression': None,
         'destination-host': None,
         'destination-compression': None,
-        'keep': None
+        'keep': 0
     }
 
     def __init__(self, action_config, logger):
@@ -80,8 +81,7 @@ class ArchiveDirectory:
             if self.config['destination-compression']:
                 cmd_string += ' | {}'.format(
                     self.config['destination-compression'])
-            # TODO: write to temp file first
-            cmd_string += ' > {}'.format(self.config['destination-file'])
+            cmd_string += ' > {}.tmp'.format(self.config['destination-file'])
             destination_cmd = [
                 '/usr/bin/ssh',
                 self.config['destination-host'],
@@ -95,8 +95,8 @@ class ArchiveDirectory:
         if self.config['destination-host']:
             destination_filename = None
         else:
-            # TODO: write to temp file first
-            destination_filename = self.config['destination-file']
+            destination_filename = \
+                '{}.tmp'.format(self.config['destination-file'])
         return destination_filename
 
     def do(self, dry_run):
@@ -112,6 +112,7 @@ class ArchiveDirectory:
             logging.DEBUG, "Executing 'ArchiveDirectory' action")
         errors = []
         if not dry_run:
+            # Backup to temporary file.
             if destination_filename is not None:
                 destination_file = open(destination_filename, "wb")
             else:
@@ -142,6 +143,17 @@ class ArchiveDirectory:
                 destination_file.close()
             if exit_code != 0:
                 errors.extend(stderr)
+            else:
+                # Rotate backup files.
+                rotate_errors = bsts_actions.rotate_file(
+                    self.config['destination-host'],
+                    self.config['destination-file'],
+                    '.tmp',
+                    self.config['keep'],
+                    self.logger)
+                for error in rotate_errors:
+                    logger.log_message(logging.ERROR, error)
+                errors.extend(rotate_errors)
         else:
             self.logger.log_message(
                 logging.INFO, 'Dry run, not performing actual actions')
