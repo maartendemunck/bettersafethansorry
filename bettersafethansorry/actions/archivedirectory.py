@@ -1,4 +1,4 @@
-import logging
+import re
 import subprocess
 import bettersafethansorry.actions as bsts_actions
 
@@ -12,6 +12,7 @@ class ArchiveDirectory:
     optional_keys = {
         'one-file-system': False,
         'source-host': None,
+        'source-container': None,
         'source-compression': None,
         'compression': None,
         'destination-host': None,
@@ -21,48 +22,70 @@ class ArchiveDirectory:
 
     def __init__(self, action_config, logger):
         self.logger = logger
-        self.logger.log_message(
-            logging.DEBUG, "Initialising 'ArchiveDirectory' action")
-        self.config = action_config
+        self.logger.log_debug("Initialising 'ArchiveDirectory' action")
+        self.config = {}
+        # Check required keys (and raise a KeyError if they don't exist).
         for key in ArchiveDirectory.required_keys:
-            if key not in action_config:
-                logger.error(
-                    "Required parameter '{}' not specified for 'ArchiveDirectory'".format(key))
+            if key in action_config:
+                self.config[key] = action_config.pop(key)
+            else:
+                self.logger.log_error("Required parameter '{}' not specified in 'ArchiveDirectory' config".format(key))
                 raise KeyError()
+        # Set defaults for optional keys.
         for key in ArchiveDirectory.optional_keys:
-            if key not in action_config:
-                action_config[key] = ArchiveDirectory.optional_keys[key]
+            self.config[key] = action_config.pop(key, ArchiveDirectory.optional_keys[key])
+        # Warn for unrecognised keys.
+        for key in action_config:
+            logger.log_warning("Ignoring unrecognised parameter '{}' in 'ArchiveDirectory' config".format(key))
 
     def has_do(self):
         return True
 
     def __compose_source_command(self):
+        # Compose tar command.
         tar_cmd = [
-            '/usr/bin/tar',
+            'tar',
             '--directory={}'.format(self.config['source-directory']),
             '--create',
             '--numeric-owner',
             '--acls',
             '--xattrs',
-            *('--one-file-system' for _i in range(1)
-              if self.config['one-file-system']),
+            *(['--one-file-system'] if self.config['one-file-system'] else []),
             '--sort=name',
             '--file=-',
             '.'
         ]
-        if self.config['source-host']:
-            cmd_string = ' '.join(tar_cmd)
-            if self.config['source-compression']:
-                cmd_string += ' | {}'.format(
-                    self.config['source-compression'])
-            source_cmd = [
-                '/usr/bin/ssh',
-                self.config['source-host'],
-                cmd_string
+        # Compose docker command.
+        if self.config['source-container'] is not None:
+            user_container = re.fullmatch('((?P<user>.+)@)?(?P<container>[^@]+)', self.config['source-container'])
+            if user_container is None:
+                self.logger.log_warning("Invalid value for parameter 'source-container' in 'ArchiveDirectory' config")
+                raise ValueError("Invalid value for parameter 'source-container' in 'ArchiveDirectory' config")
+            user = user_container.groupdict()['user']
+            container = user_container.groupdict()['container']
+            docker_cmd = [
+                'docker',
+                'exec',
+                *(['--user', user] if user is not None else []),
+                container
             ]
-        else:
-            source_cmd = tar_cmd
-        return source_cmd
+        # Compose ssh command.
+        if self.config['source-host'] is not None:
+            ssh_command = [
+                'ssh',
+                self.config['source-host']
+            ]
+        # Compose full command.
+        cmd = tar_cmd
+        if self.config['source-container'] is not None:
+            cmd = docker_cmd + [' '.join(cmd)]
+        if self.config['source-host'] is not None:
+            if self.config['source-compression'] is not None:
+                source_compression_cmd = ' | {}'.format(self.config['source-compression'])
+            else:
+                source_compression_cmd = ''
+            cmd = ssh_command + [(' '.join(cmd) + source_compression_cmd)]
+        return cmd
 
     def __compose_compression_command(self):
         if self.config['compression']:
@@ -100,16 +123,14 @@ class ArchiveDirectory:
         return destination_filename
 
     def do(self, dry_run):
-        self.logger.log_message(
-            logging.DEBUG, "Configuring 'ArchiveDirectory' action")
+        self.logger.log_debug("Configuring 'ArchiveDirectory' action")
         # Create commands from action configuration.
         source_cmd = self.__compose_source_command()
         compression_cmd = self.__compose_compression_command()
         destination_cmd = self.__compose_destination_command()
         destination_filename = self.__compose_destination_filename()
         # Run commands.
-        self.logger.log_message(
-            logging.DEBUG, "Executing 'ArchiveDirectory' action")
+        self.logger.log_debug("Executing 'ArchiveDirectory' action")
         errors = []
         if not dry_run:
             # Backup to temporary file.
@@ -135,14 +156,22 @@ class ArchiveDirectory:
                     stdin=processes[-1].stdout,
                     stdout=subprocess.PIPE,
                     stderr=subprocess.PIPE))
-            (stdout, stderr) = processes[-1].communicate()
-            for line in stderr:
-                self.logger.log_message(logging.DEBUG, line)
-            exit_code = processes[0].wait()
+            exit_codes = []
+            for process in processes:
+                exit_codes.append(process.wait())
+            error_output = ''
+            for process in processes:
+                (stdout, stderr) = process.communicate()
+                error_output += stderr.decode('utf-8')
             if destination_file is not None:
                 destination_file.close()
-            if exit_code != 0:
-                errors.extend(stderr)
+            if exit_codes[0] != 0:
+                self.logger.log_error('Command exited with return code {}'.format(exit_codes[0]))
+                for line in error_output.splitlines():
+                    self.logger.log_error(line)
+                    errors.append(line)
+                # Remove temporary file.
+                bsts_actions.remove(self.config['destination-host'], '{}.tmp'.format(self.config['destination-file']))
             else:
                 # Rotate backup files.
                 rotate_errors = bsts_actions.rotate_file(
@@ -152,11 +181,10 @@ class ArchiveDirectory:
                     self.config['keep'],
                     self.logger)
                 for error in rotate_errors:
-                    logger.log_message(logging.ERROR, error)
+                    self.logger.log_error(error)
                 errors.extend(rotate_errors)
         else:
-            self.logger.log_message(
-                logging.INFO, 'Dry run, not performing actual actions')
+            self.logger.log_info('Dry run, skipping actions')
         return errors
 
     def has_check(self):

@@ -22,26 +22,21 @@ class MasterLogger:
         self.add_logging_handler(console_handler)
 
     def add_logger(self, logger_config):
-        errors = []
         logger_type = logger_config.pop('logger', None)
         if logger_type.lower() == 'file':
             filename = logger_config.pop('filename', None)
             if filename is None:
-                self.log_message(
-                    logging.ERROR, "No filename specified for 'File' logger")
-                errors.append("No filename specified for 'File' logger")
+                self.log_error("No filename specified for 'File' logger")
+                raise KeyError("No filename specified for 'File' logger")
             append = logger_config.pop('append', True)
-            file_handler = logging.FileHandler(
-                filename, 'a' if append else 'w')
+            file_handler = logging.FileHandler(filename, 'a' if append else 'w')
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(logging.Formatter(
                 '%(asctime)s %(levelname).1s %(message)s', '%Y-%m-%d %H:%M:%S'))
             self.add_logging_handler(file_handler)
         else:
-            self.log_message(
-                logging.ERROR, "Unknown logger '{}'".format(logger_type))
-            errors.append("Unknown logger '{}'".format(logger_type))
-        return errors
+            self.log_error("Unknown logger type '{}'".format(logger_type))
+            raise ValueError("Unknown logger type '{}'".format(logger_type))
 
     def add_logging_handler(self, handler):
         self.loggers[0].get_python_logging_logger().addHandler(handler)
@@ -61,6 +56,18 @@ class MasterLogger:
     def log_message(self, level, message):
         self.__call_all_loggers('log_message', level, message)
 
+    def log_error(self, message):
+        self.log_message(logging.ERROR, message)
+    
+    def log_warning(self, message):
+        self.log_message(logging.WARNING, message)
+
+    def log_info(self, message):
+        self.log_message(logging.INFO, message)
+    
+    def log_debug(self, message):
+        self.log_message(logging.DEBUG, message)
+
 
 class PythonLoggingLogger:
 
@@ -69,38 +76,33 @@ class PythonLoggingLogger:
 
     def start_backup(self, timestamp, id, description):
         if description is not None and len(description) > 0:
-            self.log_message(timestamp, logging.INFO,
-                             "Starting backup '{}'".format(description))
+            self.log_info(timestamp, "Starting backup '{}'".format(description))
         else:
-            self.log_message(timestamp, logging.INFO, 'Starting backup')
+            self.log_info(timestamp, 'Starting backup')
 
     def finish_backup(self, timestamp, id, errors):
         if errors is None or len(errors) == 0:
-            self.log_message(timestamp, logging.INFO,
-                             "Backup completed without errors")
+            self.log_info(timestamp, 'Backup completed without errors')
         else:
-            self.log_message(timestamp, logging.INFO,
-                             "{} errors encountered while making backup".format(len(errors)))
+            self.log_info(timestamp, 'Error(s) encountered during backup')
 
     def start_action(self, timestamp, id, description):
         if description is not None and len(description) > 0:
-            self.log_message(timestamp, logging.INFO,
-                             "Starting action '{}'".format(description))
+            self.log_info(timestamp, "Starting action '{}'".format(description))
         else:
-            self.log_message(timestamp, logging.INFO, 'Starting action')
+            self.log_info(timestamp, 'Starting action')
 
     def finish_action(self, timestamp, id, errors):
         if errors is None or len(errors) == 0:
-            self.log_message(timestamp, logging.INFO,
-                             "Action completed without errors")
+            self.log_info(timestamp, 'Action completed without errors')
         else:
-            self.log_message(timestamp, logging.INFO,
-                             "{} errors encountered:".format(len(errors)))
-            for error in errors:
-                self.log_message(timestamp, logging.ERROR, error)
+            self.log_info(timestamp, 'Error(s) encountered during action')
 
     def log_message(self, timestamp, level, message):
         self.logger.log(level, message)
+
+    def log_info(self, timestamp, message):
+        self.log_message(timestamp, logging.INFO, message)
 
     def get_python_logging_logger(self):
         return self.logger

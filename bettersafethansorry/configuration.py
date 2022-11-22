@@ -1,12 +1,8 @@
-import logging
 import yaml
 try:
     from yaml import CSafeLoader as SafeLoader
 except ImportError:
     from yaml import SafeLoader
-
-
-logger = logging.getLogger(__name__)
 
 
 class Configuration:
@@ -16,15 +12,12 @@ class Configuration:
         self.config = None
 
     def load_yaml(self, filename):
-        self.logger.log_message(
-            logging.DEBUG, 'Using YAML loader {}'.format(SafeLoader))
-        self.logger.log_message(
-            logging.INFO, "Using config file '{}'".format(filename))
+        self.logger.log_debug('Using YAML loader {}'.format(SafeLoader))
+        self.logger.log_info("Using config file '{}'".format(filename))
         with open(filename, mode="rt", encoding="utf-8") as file:
             self.config = yaml.load(file, SafeLoader)
         if self.config is None:
-            self.logger.log_message(
-                logging.ERROR, 'Unable to read config file')
+            self.logger.log_error('Unable to read config file')
 
     def list_backups(self):
         return self.config['backups'].keys()
@@ -32,7 +25,7 @@ class Configuration:
     def get_backup_config(self, backup):
         return self.config['backups'][backup]
 
-    def get_loggers(self):
+    def get_loggers_config(self):
         if 'loggers' in self.config:
             return self.config['loggers']
         else:

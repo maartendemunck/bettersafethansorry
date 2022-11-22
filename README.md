@@ -35,7 +35,7 @@ Backup functions:
 
 - [ ] Backup files and directories, both local and remote
 - [X] Archive files, directories and filesystems, both local and remote
-- [ ] Archive files, directories and filesystems from docker containers, both local and remote
+- [X] Archive files, directories and filesystems from docker containers, both local and remote
 - [ ] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
 - [ ] Backup PostgreSQL database
