@@ -1,5 +1,6 @@
 import os
 import os.path
+import re
 import subprocess
 
 
@@ -61,12 +62,14 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
                 ('.{}'.format(number - 1) if (number - 1) > 0 else '')
             filename_new = filename + '.{}'.format(number)
             if isfile(host, filename_old):
-                logger.log_debug("Renaming {} to {}".format(filename_old, filename_new))
+                logger.log_debug("Renaming {} to {}".format(
+                    filename_old, filename_new))
                 success &= rename(host, filename_old, filename_new)
         # Replace destination file by temporary file.
         filename_old = filename + tmp_suffix
         filename_new = filename
-        logger.log_debug("Renaming {} to {}".format(filename_old, filename_new))
+        logger.log_debug("Renaming {} to {}".format(
+            filename_old, filename_new))
         success &= rename(host, filename_old, filename_new)
         # Log errors.
         if not success:
@@ -74,6 +77,27 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
             errors.append("Unable to rotate file '{}'".format(filename))
     else:
         # Log error if temporary file doesn't exist.
-        logger.log_error("Temporary file '{}' doesn't exist, not rotating files".format(filename + tmp_suffix))
-        errors.append("Temporary file '{}' doesn't exist, not rotating files".format(filename + tmp_suffix))
+        logger.log_error("Temporary file '{}' doesn't exist, not rotating files".format(
+            filename + tmp_suffix))
+        errors.append("Temporary file '{}' doesn't exist, not rotating files".format(
+            filename + tmp_suffix))
     return errors
+
+
+def split_user_at_host(user_at_host, user_is_optional=False, host_is_optional=False):
+    user_host = re.fullmatch(
+        '((?P<user>[^@]+)@|@)?(?P<host>[^@]+)?', user_at_host)
+    if user_host is None:
+        raise ValueError(
+            "Value '{}' not in 'user@host' format".format(user_at_host))
+        return (None, None)
+    else:
+        user = user_host.groupdict()['user']
+        host = user_host.groupdict()['host']
+        if user is None and user_is_optional is False:
+            raise ValueError(
+                "Value '{}' requires but doesn't contain an username".format(user_at_host))
+        if host is None and host_is_optional is False:
+            raise ValueError(
+                "Value '{}' requires but doesn't contain a hostname".format(user_at_host))
+        return (user, host)

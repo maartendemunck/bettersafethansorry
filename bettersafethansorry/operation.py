@@ -1,5 +1,5 @@
 import uuid
-from bettersafethansorry.actions.archivedirectory import ArchiveDirectory
+from bettersafethansorry.actions.archivestuff import ArchiveDirectory, ArchivePostgreSQL
 
 
 def run_backup(backup_config, dry_run, logger):
