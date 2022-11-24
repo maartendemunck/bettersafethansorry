@@ -16,6 +16,8 @@ To make things a bit easier to maintain, I started writing Better Safe Than Sorr
 
 ## Usage
 
+### Command Line Interface
+
 Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
 
 Positional arguments:
@@ -29,20 +31,20 @@ Options:
 - `-c CONFIG` or `--config CONFIG`: select configuration file
 - `-n` or `--dry-run`: do not actually perform actions, only log them
 
+### Configuration file
+
 ## Roadmap
 
 Backup functions:
 
-- [ ] Backup files and directories, both local and remote
-- [X] Archive files, directories and filesystems, both local and remote
-- [X] Archive files, directories and filesystems from docker containers, both local and remote
+- [ ] Backup files and directories, both local and remote, both native and in a docker container
+- [X] Archive files, directories and filesystems, both local and remote, both native and in a docker container
+- [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
 - [ ] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
-- [ ] Backup PostgreSQL database
 - [ ] Backup Git repositories
 - [ ] Backup Subversion repositories
 - [ ] Backup Git-annex repositories
-- [ ] Backup PostgreSQL containers
 - [ ] Verify backups
 
 Backup configuration:
@@ -54,10 +56,11 @@ Backup configuration:
 
 Backup operation:
 
-- [X] Manual invocation
+- [X] Command Line Interface
+- [ ] Graphical User Interface
 - [ ] Store timestamps
-- [ ] Automatic backups based on timestamps
-- [ ] Warnings for backups that are too old
+- [ ] Automatically backup based on timestamps
+- [ ] Warn for backups that are too old
 
 ## License
 
