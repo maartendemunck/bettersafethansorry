@@ -1,6 +1,4 @@
-import re
-import subprocess
-import bettersafethansorry.actions as bsts_actions
+import bettersafethansorry.utilities as bsts_utils
 
 
 class ArchiveStuff:
@@ -49,7 +47,7 @@ class ArchiveStuff:
         archive_cmd = self._compose_archive_command()
         # Compose docker command.
         if self.config['source-container'] is not None:
-            (user, container) = bsts_actions.split_user_at_host(
+            (user, container) = bsts_utils.split_user_at_host(
                 self.config['source-container'], True, False)
             docker_cmd = [
                 'docker',
@@ -122,55 +120,29 @@ class ArchiveStuff:
         compression_cmd = self._compose_compression_command()
         destination_cmd = self._compose_destination_command()
         destination_filename = self._compose_destination_filename()
+        commands = [
+            source_cmd,
+            *([compression_cmd] if compression_cmd is not None else []),
+            *([destination_cmd] if destination_cmd is not None else [])
+        ]
         # Run commands.
         self.logger.log_debug(
             "Executing '{}' action".format(self.__class__.__name__))
         errors = []
         if not dry_run:
-            # Backup to temporary file.
-            if destination_filename is not None:
-                destination_file = open(destination_filename, "wb")
-            else:
-                destination_file = None
-            processes = []
-            processes.append(subprocess.Popen(
-                source_cmd,
-                stdin=None,
-                stdout=subprocess.PIPE if compression_cmd is not None or destination_cmd is not None else destination_file,
-                stderr=subprocess.PIPE))
-            if compression_cmd is not None:
-                processes.append(subprocess.Popen(
-                    compression_cmd,
-                    stdin=processes[-1].stdout,
-                    stdout=subprocess.PIPE if destination_cmd is not None else destination_file,
-                    stderr=subprocess.PIPE))
-            if destination_cmd is not None:
-                processes.append(subprocess.Popen(
-                    destination_cmd,
-                    stdin=processes[-1].stdout,
-                    stdout=subprocess.PIPE,
-                    stderr=subprocess.PIPE))
-            exit_codes = []
-            for process in processes:
-                exit_codes.append(process.wait())
-            error_output = ''
-            for process in processes:
-                (stdout, stderr) = process.communicate()
-                error_output += stderr.decode('utf-8')
-            if destination_file is not None:
-                destination_file.close()
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, destination_filename)
             if exit_codes[0] != 0:
                 self.logger.log_error(
                     'Command exited with return code {}'.format(exit_codes[0]))
-                for line in error_output.splitlines():
+                for line in stdouts[0].splitlines():
                     self.logger.log_error(line)
                     errors.append(line)
                 # Remove temporary file.
-                bsts_actions.remove(
+                bsts_utils.remove_file(
                     self.config['destination-host'], '{}.tmp'.format(self.config['destination-file']))
             else:
                 # Rotate backup files.
-                rotate_errors = bsts_actions.rotate_file(
+                rotate_errors = bsts_utils.rotate_file(
                     self.config['destination-host'],
                     self.config['destination-file'],
                     '.tmp',
@@ -242,7 +214,7 @@ class ArchivePostgreSQL(ArchiveStuff):
 
     def _compose_archive_command(self):
         # Compose pg_dump command.
-        (user, database) = bsts_actions.split_user_at_host(
+        (user, database) = bsts_utils.split_user_at_host(
             self.config['source-database'], True, False)
         pgdump_cmd = [
             'pg_dump',
