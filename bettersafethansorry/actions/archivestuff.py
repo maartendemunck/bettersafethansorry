@@ -162,7 +162,7 @@ class ArchiveStuff:
         return ['Not implemented']
 
 
-class ArchiveDirectory(ArchiveStuff):
+class ArchiveFiles(ArchiveStuff):
 
     required_keys = [
         'source-directory'
@@ -175,7 +175,7 @@ class ArchiveDirectory(ArchiveStuff):
 
     def __init__(self, action_config, logger):
         super().__init__(action_config, logger,
-                         ArchiveDirectory.required_keys, ArchiveDirectory.optional_keys)
+                         ArchiveFiles.required_keys, ArchiveFiles.optional_keys)
 
     def has_do(self):
         return True
