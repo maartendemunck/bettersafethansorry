@@ -111,12 +111,8 @@ class ArchiveStuff(Action):
         errors = []
         if not dry_run:
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, destination_filename)
-            if exit_codes[0] != 0:
-                self.logger.log_error(
-                    'Command exited with return code {}'.format(exit_codes[0]))
-                for line in stdouts[0].splitlines():
-                    self.logger.log_error(line)
-                    errors.append(line)
+            errors.append(bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger))
+            if len(errors) > 0:
                 # Remove temporary file.
                 bsts_utils.remove_file(
                     self.config['destination-host'], '{}.tmp'.format(self.config['destination-file']))

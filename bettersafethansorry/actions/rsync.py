@@ -66,16 +66,8 @@ class RsyncFiles(Action):
             "Executing '{}' action".format(self.__class__.__name__))
         errors = []
         if not dry_run:
-            print(' '.join(commands[0]))
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, None)
-            if exit_codes[0] != 0:
-                self.logger.log_error(
-                    'Command exited with return code {}'.format(exit_codes[0]))
-                for line in stdouts[0].splitlines():
-                    self.logger.log_error(line)
-                    errors.append(line)
-                if len(errors) == 0:
-                    errors.append('Unknown error, exit code {}'.format(exit_codes[0]))
+            errors.append(bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger))
         else:
             self.logger.log_info('Dry run, skipping actions')
         return errors

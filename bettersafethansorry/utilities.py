@@ -142,3 +142,19 @@ def run_processes(commands, stdout_filename):
         stdout_file.close()
     # Return all exit codes and stdout and stderr output.
     return exit_codes, stdouts, stderrs
+
+
+def log_subprocess_errors(commands, exit_codes, stdouts, stderrs, logger):
+    errors = []
+    for command, exit_code, stdout, stderr in zip(commands, exit_codes, stdouts, stderrs):
+        if exit_code == 0:
+            logger.log_debug("Subprocess '{}' exited successfully".format(command[0]))
+        else:
+            logger.log_error("Subprocess '{}' exited with error code {}".format(command[0], exit_code))
+            if len(stderr) > 0:
+                for line in stderr.splitlines():
+                    logger.log_error(line)
+                    errors.append(line)
+            else:
+                errors.append("No stderr output available")
+    return errors
