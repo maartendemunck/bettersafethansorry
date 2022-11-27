@@ -110,8 +110,10 @@ class ArchiveStuff(Action):
             "Executing '{}' action".format(self.__class__.__name__))
         errors = []
         if not dry_run:
-            exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, destination_filename)
-            errors.append(bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger))
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                commands, destination_filename)
+            errors.extend(bsts_utils.log_subprocess_errors(
+                commands, exit_codes, stdouts, stderrs, self.logger))
             if len(errors) > 0:
                 # Remove temporary file.
                 bsts_utils.remove_file(
@@ -161,7 +163,8 @@ class ArchiveFiles(ArchiveStuff):
             *(['--acls', '--xattrs'] if not self.config['minimalistic-tar'] else []),
             *(['--one-file-system'] if self.config['one-file-system'] else []),
             *(['--sort=name'] if not self.config['minimalistic-tar'] else []),
-            *(['--dereference'] if self.config['follow-symlinks'] and not self.config['minimalistic-tar'] else []),
+            *(['--dereference'] if self.config['follow-symlinks']
+              and not self.config['minimalistic-tar'] else []),
             '--file=-',
             '.'
         ]
