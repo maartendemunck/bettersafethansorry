@@ -37,7 +37,7 @@ Options:
 
 Backup functions:
 
-- [ ] Backup files and directories, both local and remote, both native and in a docker container
+- [X] Rsync files and directories, both local and remote
 - [X] Archive files, directories and filesystems, both local and remote, both native and in a docker container
 - [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
 - [ ] Archive photos and videos to a date- and time based directory structure
@@ -57,6 +57,7 @@ Backup configuration:
 Backup operation:
 
 - [X] Command Line Interface
+- [ ] Continuous logging (instead of buffering until the subprocesses finish)
 - [ ] Graphical User Interface
 - [ ] Store timestamps
 - [ ] Automatically backup based on timestamps

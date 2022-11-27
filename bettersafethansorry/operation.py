@@ -1,5 +1,6 @@
 import uuid
 from bettersafethansorry.actions.archivestuff import ArchiveFiles, ArchivePostgreSQL
+from bettersafethansorry.actions.rsync import RsyncFiles
 
 
 def run_backup(backup_config, dry_run, logger):
