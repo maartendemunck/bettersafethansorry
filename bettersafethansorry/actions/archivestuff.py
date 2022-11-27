@@ -140,6 +140,7 @@ class ArchiveFiles(ArchiveStuff):
 
     optional_keys = {
         'one-file-system': False,
+        'follow-symlinks': False,
         'minimalistic-tar': False
     }
 
@@ -160,6 +161,7 @@ class ArchiveFiles(ArchiveStuff):
             *(['--acls', '--xattrs'] if not self.config['minimalistic-tar'] else []),
             *(['--one-file-system'] if self.config['one-file-system'] else []),
             *(['--sort=name'] if not self.config['minimalistic-tar'] else []),
+            *(['--dereference'] if self.config['follow-symlinks'] and not self.config['minimalistic-tar'] else []),
             '--file=-',
             '.'
         ]

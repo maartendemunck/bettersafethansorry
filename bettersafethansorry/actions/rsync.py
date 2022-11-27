@@ -12,6 +12,7 @@ class RsyncFiles(Action):
     optional_keys = {
         'source-host': None,
         'destination-host': None,
+        'follow-symlinks': False,
         'excludes': []
     }
 
@@ -40,6 +41,7 @@ class RsyncFiles(Action):
             '--delete-after',
             '--delete-excluded',
             *(["--exclude='{}'".format(excluded) for excluded in self.config['excludes']]),
+            *(['--copy-links'] if self.config['follow-symlinks'] else []),
             source,
             destination
         ]
