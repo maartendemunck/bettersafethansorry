@@ -23,7 +23,6 @@ class RsyncFiles(Action):
     def has_do(self):
         return True
 
-
     def _compose_rsync_command(self):
         source = ''
         if self.config['source-host'] is not None:
@@ -36,11 +35,11 @@ class RsyncFiles(Action):
         rsync_command = [
             'rsync',
             '--archive',
-            '--verbose',
             '--timeout=120',
-            '--delete-after',
+            '--delete',
             '--delete-excluded',
-            *(["--exclude='{}'".format(excluded) for excluded in self.config['excludes']]),
+            * (["--exclude={}".format(excluded)
+                for excluded in self.config['excludes']]),
             *(['--copy-links'] if self.config['follow-symlinks'] else []),
             source,
             destination
@@ -68,8 +67,10 @@ class RsyncFiles(Action):
             "Executing '{}' action".format(self.__class__.__name__))
         errors = []
         if not dry_run:
-            exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, None)
-            errors.append(bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger))
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                commands, None)
+            errors.extend(bsts_utils.log_subprocess_errors(
+                commands, exit_codes, stdouts, stderrs, self.logger))
         else:
             self.logger.log_info('Dry run, skipping actions')
         return errors
