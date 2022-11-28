@@ -14,6 +14,99 @@ To make things a bit easier to maintain, I started writing Better Safe Than Sorr
 
 ## Getting Started
 
+To decrease my electricity consumption, I recently bought a mini server (wormwood) to run some applications that previously ran on my desktop PC (calvin) so that I can just shut down my desktop PC when I'm not using it. This system currently runs my maarten@home website with some webapps and a Gitea service and is the perfect example to show how Better Safe Than Sorry works.
+
+The most important data on this system is of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. Now and then, I want to make a full system backup, but since both my maarten@home website and the Gitea service run from docker containers and their configuration is already stored in Git repositories, that's only needed to reduce the recovery time if the SSD fails.
+
+These requirements yield this configuration file `~/.config/bettersafethansorry.yaml` for Better Safe Than Sorry:
+
+```yaml
+backups:
+  wormwood-image:
+    description: Full filesystem backup of Wormwood
+    actions:
+      - description: Backup / filesystem
+        action: ArchiveFiles
+        one-file-system: true
+        source-host: root@wormwood.home.vijfendertig.be
+        source-directory: /
+        destination-host: maarten@calvin.home.vijfendertig.be
+        destination-file: /srv/backup/hosts/wormwood/images/wormwood-root.tar.bz2
+        destination-compression: /usr/bin/bzip2 -9
+        keep: 3
+      - description: Backup /boot filesystem
+        action: ArchiveFiles
+        one-file-system: true
+        source-host: root@wormwood.home.vijfendertig.be
+        source-directory: /boot/
+        destination-host: maarten@calvin.home.vijfendertig.be
+        destination-file: /srv/backup/hosts/wormwood/images/wormwood-boot.tar.bz2
+        destination-compression: /usr/bin/bzip2 -9
+        keep: 3
+      - description: Backup /boot/efi filesystem
+        action: ArchiveFiles
+        one-file-system: true
+        source-host: root@wormwood.home.vijfendertig.be
+        source-directory: /boot/efi/
+        destination-host: maarten@calvin.home.vijfendertig.be
+        destination-file: /srv/backup/hosts/wormwood/images/wormwood-efi.tar.bz2
+        destination-compression: /usr/bin/bzip2 -9
+        keep: 3
+  wormwood-maartenathome:
+    description: maarten@home website data
+    actions:
+      - description: Archive maarten@home django database
+        action: ArchivePostgreSQL
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-container: maartenathome-maartenathome-postgres-1
+        source-database: maartenathome@maartenathome
+        destination-file: /srv/backup/hosts/wormwood/data/maartenathome-database.sql.bz2
+        destination-compression: bzip2
+        keep: 3
+      - description: Archive maarten@home django media
+        action: ArchiveFiles
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-container: django@maartenathome-maartenathome-django-1
+        source-directory: /srv/django/media/
+        destination-file: /srv/backup/hosts/wormwood/data/maartenathome-media.tar.bz2
+        destination-compression: bzip2
+        keep: 3
+  wormwood-gitea:
+    description: Gitea@home
+    actions:
+      - description: Archive Gitea database
+        action: ArchivePostgreSQL
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-container: maartenathome-gitea-postgres-1
+        source-database: gitea@gitea
+        destination-file: /srv/backup/hosts/wormwood/data/gitea-database.sql.bz2
+        destination-compression: bzip2
+        keep: 3
+      - description: Archive Gitea configuration and repositories
+        action: ArchiveFiles
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-container: maartenathome-gitea-server-1
+        source-directory: /data/
+        minimalistic-tar: true
+        destination-file: /srv/backup/hosts/wormwood/data/gitea-data.tar.bz2
+        destination-compression: bzip2
+        keep: 3
+loggers:
+  - logger: File
+    filename: /home/maarten/.local/log/bettersafethansorry.log
+    append: true
+```
+
+The configuration file defines three backups:
+
+- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I bzip2 the tar archives on the desktop PC.
+- `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off) and again, compression is done on the system running the backup.
+- `wormwood-gitea` makes a backup of the Gitea database in the Gitea PostgreSQL container and the data directory in the Gitea server container. Again, backups are made to whatever system runs the backup and compression is done on the system running the backup.
+
+Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
+
+`bsts list` lists the available backups and `bsts do wormwood-image`, `bsts do wormwood-maartenathome` and `bsts do wormwood-gitea` run the individual backups.
+
 ## Usage
 
 ### Command Line Interface
