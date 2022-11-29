@@ -12,11 +12,13 @@ I started with a simple shell script copying important files to external USB dri
 
 To make things a bit easier to maintain, I started writing Better Safe Than Sorry. The main goal is to create a library of my backup functions, a system to configure all my backups and a way to run the backups, either manually (for backups from and to mobile devices) or automatic (from and to remote systems).
 
+## Installation
+
 ## Getting Started
 
 To decrease my electricity consumption, I recently bought a mini server (wormwood) to run some applications that previously ran on my desktop PC (calvin) so that I can just shut down my desktop PC when I'm not using it. This system currently runs my maarten@home website with some webapps and a Gitea service and is the perfect example to show how Better Safe Than Sorry works.
 
-The most important data on this system is of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. Now and then, I want to make a full system backup, but since both my maarten@home website and the Gitea service run from docker containers and their configuration is already stored in Git repositories, that's only needed to reduce the recovery time if the SSD fails.
+The most important data on this system are of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. Now and then, I want to make a full system backup, but since both my maarten@home website and the Gitea service run from docker containers and their configuration is already stored in Git repositories, that's only needed to reduce the recovery time if the SSD fails. No data is lost if the full system backup is a bit outdated.
 
 These requirements yield this configuration file `~/.config/bettersafethansorry.yaml` for Better Safe Than Sorry:
 
@@ -100,7 +102,7 @@ loggers:
 The configuration file defines three backups:
 
 - `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I bzip2 the tar archives on the desktop PC.
-- `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off) and again, compression is done on the system running the backup.
+- `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off). Again, compression is done on the system running the backup.
 - `wormwood-gitea` makes a backup of the Gitea database in the Gitea PostgreSQL container and the data directory in the Gitea server container. Again, backups are made to whatever system runs the backup and compression is done on the system running the backup.
 
 Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
@@ -133,28 +135,32 @@ Backup functions:
 - [X] Rsync files and directories, both local and remote
 - [X] Archive files, directories and filesystems, both local and remote, both native and in a docker container
 - [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
+- [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
 - [ ] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
 - [ ] Backup Git repositories
 - [ ] Backup Subversion repositories
-- [ ] Backup Git-annex repositories
 - [ ] Verify backups
 
 Backup configuration:
 
 - [X] Actions
-- [ ] Variable substitution
 - [X] Logging
-- [ ] Action templates
+- [ ] Templates
+- [ ] Variable substitution
 
 Backup operation:
 
-- [X] Command Line Interface
-- [ ] Continuous logging (instead of buffering until the subprocesses finish)
-- [ ] Graphical User Interface
+- [X] Command line interface (CLI)
 - [ ] Store timestamps
-- [ ] Automatically backup based on timestamps
-- [ ] Warn for backups that are too old
+- [ ] Run outdated backups automatically
+- [ ] Warn for outdated backups
+- [ ] Continuous logging (instead of buffering until the subprocesses finish)
+- [ ] Graphical user interface (GUI)
+
+Other stuff:
+
+- [ ] Localization (en, nl...)
 
 ## License
 
