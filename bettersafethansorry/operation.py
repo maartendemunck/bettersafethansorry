@@ -1,6 +1,7 @@
 import uuid
-from bettersafethansorry.actions.archivestuff import ArchiveFiles, ArchivePostgreSQL
+from bettersafethansorry.actions.archive import ArchiveFiles, ArchivePostgreSQL
 from bettersafethansorry.actions.rsync import RsyncFiles
+from bettersafethansorry.actions.repositories import UpdateGitAnnex
 
 
 def run_backup(backup_config, dry_run, logger):

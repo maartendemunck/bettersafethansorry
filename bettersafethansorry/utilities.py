@@ -114,7 +114,7 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
     return errors
 
 
-def run_processes(commands, stdout_filename):
+def run_processes(commands, stdout_filename, cwd=None):
     # Open output file if stdout of last process needs to be sent to a file.
     if stdout_filename is not None:
         stdout_file = open(stdout_filename, 'wb')
@@ -127,7 +127,8 @@ def run_processes(commands, stdout_filename):
             command,
             stdin=processes[-1].stdout if not is_first else None,
             stdout=subprocess.PIPE if is_last is False or stdout_filename is None else stdout_file,
-            stderr=subprocess.PIPE))
+            stderr=subprocess.PIPE,
+            cwd=cwd))
     # Get exit codes and output.
     exit_codes = []
     stdouts = []
@@ -148,9 +149,11 @@ def log_subprocess_errors(commands, exit_codes, stdouts, stderrs, logger):
     errors = []
     for command, exit_code, stdout, stderr in zip(commands, exit_codes, stdouts, stderrs):
         if exit_code == 0:
-            logger.log_debug("Subprocess '{}' exited successfully".format(command[0]))
+            logger.log_debug(
+                "Subprocess '{}' exited successfully".format(command[0]))
         else:
-            logger.log_error("Subprocess '{}' exited with error code {}".format(command[0], exit_code))
+            logger.log_error(
+                "Subprocess '{}' exited with error code {}".format(command[0], exit_code))
             if len(stderr) > 0:
                 for line in stderr.splitlines():
                     logger.log_error(line)

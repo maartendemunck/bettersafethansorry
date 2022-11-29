@@ -73,7 +73,7 @@ class ArchiveStuff(Action):
                     self.config['destination-compression'])
             cmd_string += ' > {}.tmp'.format(self.config['destination-file'])
             destination_cmd = [
-                '/usr/bin/ssh',
+                'ssh',
                 self.config['destination-host'],
                 cmd_string
             ]
