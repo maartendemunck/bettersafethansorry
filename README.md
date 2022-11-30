@@ -18,9 +18,9 @@ To make things a bit easier to maintain, I started writing Better Safe Than Sorr
 
 To decrease my electricity consumption, I recently bought a mini server (wormwood) to run some applications that previously ran on my desktop PC (calvin) so that I can just shut down my desktop PC when I'm not using it. This system currently runs my maarten@home website with some webapps and a Gitea service and is the perfect example to show how Better Safe Than Sorry works.
 
-The most important data on this system are of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. Now and then, I want to make a full system backup, but since both my maarten@home website and the Gitea service run from docker containers and their configuration is already stored in Git repositories, that's only needed to reduce the recovery time if the SSD fails. No data is lost if the full system backup is a bit outdated.
+The most important data on this system are of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. The website itself and the deployment scripts of the website and the Gitea service are stored in Git repositories, so no additional data backups are needed. To reduce the recovery time in case the the SSD or the full system would fail, I want to make a full system backup now and then, but no data is lost if this backup is a bit outdated.
 
-These requirements yield this configuration file `~/.config/bettersafethansorry.yaml` for Better Safe Than Sorry:
+These requirements yield this configuration file `~/.config/bettersafethansorry/config.yaml` for Better Safe Than Sorry:
 
 ```yaml
 backups:

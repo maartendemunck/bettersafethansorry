@@ -33,9 +33,11 @@ class RsyncFiles(Action):
             destination += '{}:'.format(self.config['destination-host'])
         destination += self.config['destination-directory']
         if use_shell is False:
-            exclude_list = ["--exclude={}".format(excluded) for excluded in self.config['excludes']]
+            exclude_list = [
+                "--exclude={}".format(excluded) for excluded in self.config['excludes']]
         else:
-            exclude_list = ["--exclude='{}'".format(excluded.replace("'", "\\'")) for excluded in self.config['excludes']]
+            exclude_list = ["--exclude='{}'".format(excluded.replace(
+                "'", "\\'")) for excluded in self.config['excludes']]
         rsync_command = [
             'rsync',
             '--archive',
@@ -70,7 +72,7 @@ class RsyncFiles(Action):
         errors = []
         if not dry_run:
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(
-                commands, None)
+                commands, None, self.logger)
             errors.extend(bsts_utils.log_subprocess_errors(
                 commands, exit_codes, stdouts, stderrs, self.logger))
         else:

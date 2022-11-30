@@ -50,12 +50,14 @@ class ArchiveStuff(Action):
         if self.config['source-container'] is not None:
             cmd = docker_cmd + [cmd]
         if self.config['source-host'] is not None:
+            if isinstance(cmd, list):
+                cmd = ' '.join(cmd)
             if self.config['source-compression'] is not None:
                 source_compression_cmd = ' | {}'.format(
                     self.config['source-compression'])
             else:
                 source_compression_cmd = ''
-            cmd = ssh_command + [(' '.join(cmd) + source_compression_cmd)]
+            cmd = ssh_command + [cmd + source_compression_cmd]
         return cmd
 
     def _compose_compression_command(self):
@@ -115,7 +117,7 @@ class ArchiveStuff(Action):
         errors = []
         if not dry_run:
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(
-                commands, destination_filename)
+                commands, destination_filename, self.logger)
             errors.extend(bsts_utils.log_subprocess_errors(
                 commands, exit_codes, stdouts, stderrs, self.logger))
             if len(errors) > 0:

@@ -50,7 +50,7 @@ class UpdateGitAnnex(Action):
         errors = []
         if not dry_run:
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(
-                commands, None, cwd=cwd)
+                commands, None, self.logger, cwd=cwd)
             errors.extend(bsts_utils.log_subprocess_errors(
                 commands, exit_codes, stdouts, stderrs, self.logger))
         else:

@@ -114,7 +114,7 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
     return errors
 
 
-def run_processes(commands, stdout_filename, cwd=None):
+def run_processes(commands, stdout_filename, logger, cwd=None):
     # Open output file if stdout of last process needs to be sent to a file.
     if stdout_filename is not None:
         stdout_file = open(stdout_filename, 'wb')
@@ -123,6 +123,7 @@ def run_processes(commands, stdout_filename, cwd=None):
     # Start processes.
     processes = []
     for command, is_first, is_last in signal_first_last(commands):
+        logger.log_debug('Starting subprocess: {}'.format(command))
         processes.append(subprocess.Popen(
             command,
             stdin=processes[-1].stdout if not is_first else None,
