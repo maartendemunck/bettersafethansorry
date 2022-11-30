@@ -24,7 +24,11 @@ class ArchiveStuff(Action):
         super().__init__(action_config, logger, required_keys, optional_keys)
 
     def _compose_source_command(self):
-        archive_cmd = self._compose_archive_command()
+        # Compose archive command.
+        if self.config['source-container'] is None and self.config['source-host'] is None:
+            archive_cmd = self._compose_archive_command(False)
+        else:
+            archive_cmd = self._compose_archive_command(True)
         # Compose docker command.
         if self.config['source-container'] is not None:
             (user, container) = bsts_utils.split_user_at_host(
@@ -44,7 +48,7 @@ class ArchiveStuff(Action):
         # Compose full command.
         cmd = archive_cmd
         if self.config['source-container'] is not None:
-            cmd = docker_cmd + [' '.join(cmd)]
+            cmd = docker_cmd + [cmd]
         if self.config['source-host'] is not None:
             if self.config['source-compression'] is not None:
                 source_compression_cmd = ' | {}'.format(
@@ -143,6 +147,7 @@ class ArchiveFiles(ArchiveStuff):
     optional_keys = {
         'one-file-system': False,
         'follow-symlinks': False,
+        'excludes': [],
         'minimalistic-tar': False
     }
 
@@ -153,8 +158,14 @@ class ArchiveFiles(ArchiveStuff):
     def has_do(self):
         return True
 
-    def _compose_archive_command(self):
+    def _compose_archive_command(self, use_shell):
         # Compose tar command.
+        if use_shell is False:
+            exclude_list = [
+                "--exclude={}".format(excluded) for excluded in self.config['excludes']]
+        else:
+            exclude_list = ["--exclude='{}'".format(excluded.replace(
+                "'", "\\'")) for excluded in self.config['excludes']]
         tar_cmd = [
             'tar',
             '--directory={}'.format(self.config['source-directory']),
@@ -165,10 +176,11 @@ class ArchiveFiles(ArchiveStuff):
             *(['--sort=name'] if not self.config['minimalistic-tar'] else []),
             *(['--dereference'] if self.config['follow-symlinks']
               and not self.config['minimalistic-tar'] else []),
+            *(exclude_list),
             '--file=-',
             '.'
         ]
-        return tar_cmd
+        return tar_cmd if use_shell is False else ' '.join(tar_cmd)
 
 
 class ArchivePostgreSQL(ArchiveStuff):
@@ -187,7 +199,7 @@ class ArchivePostgreSQL(ArchiveStuff):
     def has_do(self):
         return True
 
-    def _compose_archive_command(self):
+    def _compose_archive_command(self, use_shell):
         # Compose pg_dump command.
         (user, database) = bsts_utils.split_user_at_host(
             self.config['source-database'], True, False)
@@ -196,4 +208,4 @@ class ArchivePostgreSQL(ArchiveStuff):
             '{}'.format(database),
             *(['--username={}'.format(user)] if user is not None else [])
         ]
-        return pgdump_cmd
+        return pgdump_cmd if use_shell is False else ' '.join(pgdump_cmd)

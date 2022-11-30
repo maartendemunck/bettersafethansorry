@@ -23,7 +23,7 @@ class RsyncFiles(Action):
     def has_do(self):
         return True
 
-    def _compose_rsync_command(self):
+    def _compose_rsync_command(self, use_shell):
         source = ''
         if self.config['source-host'] is not None:
             source += '{}:'.format(self.config['source-host'])
@@ -32,30 +32,32 @@ class RsyncFiles(Action):
         if self.config['destination-host'] is not None and self.config['source_host'] is None:
             destination += '{}:'.format(self.config['destination-host'])
         destination += self.config['destination-directory']
+        if use_shell is False:
+            exclude_list = ["--exclude={}".format(excluded) for excluded in self.config['excludes']]
+        else:
+            exclude_list = ["--exclude='{}'".format(excluded.replace("'", "\\'")) for excluded in self.config['excludes']]
         rsync_command = [
             'rsync',
             '--archive',
             '--timeout=120',
             '--delete',
             '--delete-excluded',
-            * (["--exclude={}".format(excluded)
-                for excluded in self.config['excludes']]),
+            *(exclude_list),
             *(['--copy-links'] if self.config['follow-symlinks'] else []),
             source,
             destination
         ]
-        return rsync_command
+        return rsync_command if use_shell else ' '.join(rsync_command)
 
     def _compose_command(self):
-        rsync_command = self._compose_rsync_command()
-        if self.config['destination-host'] is not None and self.config['source_host'] is None:
+        if self.config['destination-host'] is not None and self.config['source_host'] is not None:
             return [
                 'ssh',
                 self.config['destination-host'],
-                ' '.join(rsync_command)
+                self._compose_rsync_command(True)
             ]
         else:
-            return rsync_command
+            return self._compose_rsync_command(False)
 
     def do(self, dry_run):
         self.logger.log_debug(
