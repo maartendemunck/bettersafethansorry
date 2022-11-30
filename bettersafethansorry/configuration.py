@@ -1,3 +1,4 @@
+import deepmerge
 import yaml
 try:
     from yaml import CSafeLoader as SafeLoader
@@ -22,6 +23,9 @@ class Configuration:
     def list_backups(self):
         return self.config['backups'].keys()
 
+    def get_full_config(self):
+        return self.config
+
     def get_backup_config(self, backup):
         return self.config['backups'][backup]
 
@@ -36,3 +40,33 @@ def load_yaml(filename, logger):
     config = Configuration(logger)
     config.load_yaml(filename)
     return config
+
+
+def process_includes(backup_config, full_config):
+    append_merger = deepmerge.Merger(
+        [(list, ["append"]), (dict, ["merge"])], "use_existing", "use_existing")
+    prepend_merger = deepmerge.Merger(
+        [(list, ["prepend"]), (dict, ["merge"])], "use_existing", "use_existing")
+    includes = backup_config.pop('includes', [])
+    included = None
+    for include in includes:
+        new = None
+        try:
+            new = full_config['backups'][include]
+        except KeyError:
+            pass
+        try:
+            new = full_config['templates'][include]
+        except KeyError:
+            pass
+        if new is None:
+            raise KeyError(
+                "Included section '{}' not found in configuration file".format(include))
+        if included is None:
+            included = new
+        else:
+            included = append_merger.merge(included, new)
+    if included is not None:
+        backup_config = prepend_merger.merge(
+            backup_config, process_includes(included, full_config))
+    return backup_config

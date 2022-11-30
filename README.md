@@ -117,8 +117,8 @@ Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
 
 Positional arguments:
 
-- `command`: `list` or `do`
-- `backup`: backup to perform (as defined in the configuration file)
+- `command`: `list`, `show` or `do`
+- `backup`: backup to show or perform (as defined in the configuration file)
 
 Options:
 
@@ -146,7 +146,7 @@ Backup configuration:
 
 - [X] Actions
 - [X] Logging
-- [ ] Templates
+- [X] Includes and templates
 - [ ] Variable substitution
 
 Backup operation:
