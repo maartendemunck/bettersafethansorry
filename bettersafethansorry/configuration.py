@@ -70,3 +70,22 @@ def process_includes(backup_config, full_config):
         backup_config = prepend_merger.merge(
             backup_config, process_includes(included, full_config))
     return backup_config
+
+
+def process_variables(backup_config):
+    variables = backup_config.pop('variables', {})
+
+    def process_variables_helper(config):
+        if isinstance(config, list):
+            return [process_variables_helper(item) for item in config]
+        elif isinstance(config, dict):
+            return {key: process_variables_helper(value) for key, value in config.items()}
+        elif isinstance(config, str):
+            for variable, replacement in variables.items():
+                config = config.replace(
+                    "${{{}}}".format(variable), replacement)
+            return config
+        else:
+            return config
+
+    return process_variables_helper(backup_config)

@@ -147,7 +147,7 @@ Backup configuration:
 - [X] Actions
 - [X] Logging
 - [X] Includes and templates
-- [ ] Variable substitution
+- [X] Variable substitution
 
 Backup operation:
 

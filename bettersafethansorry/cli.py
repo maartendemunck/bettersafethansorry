@@ -57,6 +57,7 @@ def run():
             backup_config = config.get_backup_config(args.backup)
             backup_config = bsts_configuration.process_includes(
                 backup_config, config.get_full_config())
+            backup_config = bsts_configuration.process_variables(backup_config)
         except KeyError:
             logger.log_error(
                 "Backup '{}' not found in config file".format(args.backup))
