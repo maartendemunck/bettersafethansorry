@@ -49,7 +49,7 @@ class RsyncFiles(Action):
             source,
             destination
         ]
-        return rsync_command if use_shell else ' '.join(rsync_command)
+        return rsync_command if use_shell is False else ' '.join(rsync_command)
 
     def _compose_command(self):
         if self.config['destination-host'] is not None and self.config['source_host'] is not None:
