@@ -46,8 +46,12 @@ def run():
 
     # Run command.
     if args.command.lower() == 'list':
-        print('Configured backups: {}'.format(
-            ', '.join(config.list_backups())))
+        print('Configured backups:')
+        for backup, description in config.list_backups_and_descriptions().items():
+            if description is not None:
+                print('- {}: {}'.format(backup, description))
+            else:
+                print('- {}'.format(backup))
     elif args.command.lower() in ('show', 'do'):
         dry_run = True if args.dry_run else False
         if (args.backup is None):

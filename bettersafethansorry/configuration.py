@@ -23,6 +23,12 @@ class Configuration:
     def list_backups(self):
         return self.config['backups'].keys()
 
+    def list_backups_and_descriptions(self):
+        available_backups = {}
+        for backup, definition in self.config['backups'].items():
+            available_backups[backup] = definition.get('description', None)
+        return available_backups
+
     def get_full_config(self):
         return self.config
 
