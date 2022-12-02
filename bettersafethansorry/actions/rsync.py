@@ -13,6 +13,7 @@ class RsyncFiles(Action):
         'source-host': None,
         'destination-host': None,
         'follow-symlinks': False,
+        'optimize-renames': False,
         'excludes': []
     }
 
@@ -46,6 +47,8 @@ class RsyncFiles(Action):
             '--delete-excluded',
             *(exclude_list),
             *(['--copy-links'] if self.config['follow-symlinks'] else []),
+            *(['--fuzzy', '--delete-delay', '--delay-updates']
+              if self.config['optimize-renames'] else []),
             source,
             destination
         ]
