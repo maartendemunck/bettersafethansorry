@@ -123,7 +123,11 @@ def run_processes(commands, stdout_filename, logger, cwd=None):
     # Start processes.
     processes = []
     for command, is_first, is_last in signal_first_last(commands):
-        logger.log_debug('Starting subprocess: {}'.format(command))
+        if cwd is None:
+            logger.log_debug('Starting subprocess: {}'.format(command))
+        else:
+            logger.log_debug(
+                "Starting subprocess: {} (cwd: '{}')".format(command, cwd))
         processes.append(subprocess.Popen(
             command,
             stdin=processes[-1].stdout if not is_first else None,
