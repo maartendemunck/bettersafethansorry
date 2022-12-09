@@ -10,6 +10,7 @@ class UpdateGitAnnex(Action):
 
     optional_keys = {
         'destination-host': None,
+        'remotes': []
     }
 
     def __init__(self, action_config, logger):
@@ -24,7 +25,8 @@ class UpdateGitAnnex(Action):
             'git',
             'annex',
             'sync',
-            '--no-resolvemerge'
+            '--no-resolvemerge',
+            *(self.config['remotes'])
         ]
         if self.config['destination-host'] is not None:
             ssh_command = [
