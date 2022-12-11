@@ -2,6 +2,7 @@ import os
 import os.path
 import re
 import subprocess
+import threading
 
 
 def signal_first_last(iterable):
@@ -115,6 +116,13 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
 
 
 def run_processes(commands, stdout_filename, logger, cwd=None):
+
+    def communicate(index):
+        stdout, stderr = processes[index].communicate()
+        stdouts[index] = stdout.decode('utf-8') if stdout is not None else ''
+        stderrs[index] = stderr.decode('utf-8') if stderr is not None else ''
+        exit_codes[index] = processes[index].returncode
+
     # Open output file if stdout of last process needs to be sent to a file.
     if stdout_filename is not None:
         stdout_file = open(stdout_filename, 'wb')
@@ -122,27 +130,34 @@ def run_processes(commands, stdout_filename, logger, cwd=None):
         stdout_file = None
     # Start processes.
     processes = []
+    exit_codes = []
+    stdouts = []
+    stderrs = []
+    threads = []
     for command, is_first, is_last in signal_first_last(commands):
         if cwd is None:
             logger.log_debug('Starting subprocess: {}'.format(command))
         else:
             logger.log_debug(
                 "Starting subprocess: {} (cwd: '{}')".format(command, cwd))
+        process_index = len(processes)
         processes.append(subprocess.Popen(
             command,
             stdin=processes[-1].stdout if not is_first else None,
             stdout=subprocess.PIPE if is_last is False or stdout_filename is None else stdout_file,
             stderr=subprocess.PIPE,
             cwd=cwd))
-    # Get exit codes and output.
-    exit_codes = []
-    stdouts = []
-    stderrs = []
-    for process in processes:
-        exit_codes.append(process.wait())
-        stdout, stderr = process.communicate()
-        stdouts.append(stdout.decode('utf-8') if stdout is not None else '')
-        stderrs.append(stderr.decode('utf-8') if stderr is not None else '')
+        exit_codes.append(None)
+        stdouts.append(None)
+        stderrs.append(None)
+        thread = threading.Thread(target=communicate, args=(process_index,))
+        threads.append(thread)
+        thread.start()
+    # Wait for communicate threads to finish
+    logger.log_debug("Waiting for subprocess(es) to finish")
+    for thread in threads:
+        thread.join()
+    logger.log_debug("Subprocess(es) finished")
     # Close output file.
     if stdout_filename is not None:
         stdout_file.close()
