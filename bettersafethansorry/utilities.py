@@ -117,11 +117,15 @@ def rotate_file(host, filename, tmp_suffix, keep, logger):
 
 def run_processes(commands, stdout_filename, logger, cwd=None):
 
-    def communicate(index):
-        stdout, stderr = processes[index].communicate()
-        stdouts[index] = stdout.decode('utf-8') if stdout is not None else ''
-        stderrs[index] = stderr.decode('utf-8') if stderr is not None else ''
+    def catch_stderr(index):
+        # Do not use Popen.communicate because it also consumes part of
+        # the stdout which should be received by the next subprocess.
+        stderr = bytearray()
+        for stderr_line in iter(processes[index].stderr.readline, b''):
+            stderr.extend(stderr_line)
+        processes[index].wait()
         exit_codes[index] = processes[index].returncode
+        stderrs[index] = stderr.decode('utf-8') if stderr is not None else ''
 
     # Open output file if stdout of last process needs to be sent to a file.
     if stdout_filename is not None:
@@ -150,7 +154,7 @@ def run_processes(commands, stdout_filename, logger, cwd=None):
         exit_codes.append(None)
         stdouts.append(None)
         stderrs.append(None)
-        thread = threading.Thread(target=communicate, args=(process_index,))
+        thread = threading.Thread(target=catch_stderr, args=(process_index,))
         threads.append(thread)
         thread.start()
     # Wait for communicate threads to finish
