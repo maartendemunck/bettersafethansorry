@@ -31,7 +31,7 @@ class ArchiveStuff(Action):
             archive_cmd = self._compose_archive_command(True)
         # Compose docker command.
         if self.config['source-container'] is not None:
-            (user, container) = bsts_utils.split_user_at_host(
+            (user, container) = bsts_utils.split_user_host(
                 self.config['source-container'], True, False)
             docker_cmd = [
                 'docker',
@@ -203,11 +203,12 @@ class ArchivePostgreSQL(ArchiveStuff):
 
     def _compose_archive_command(self, use_shell):
         # Compose pg_dump command.
-        (user, database) = bsts_utils.split_user_at_host(
+        (user, database) = bsts_utils.split_user_host(
             self.config['source-database'], True, False)
         pgdump_cmd = [
             'pg_dump',
             '{}'.format(database),
-            *(['--username={}'.format(user)] if user is not None else [])
+            *(['--username={}'.format(user)] if user is not None else []),
+            '--no-password'
         ]
         return pgdump_cmd if use_shell is False else ' '.join(pgdump_cmd)

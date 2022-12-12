@@ -10,12 +10,13 @@ repository = "https://gitea.home.vijfendertig.be/maarten/bettersafethansorry"
 keywords = ["Backup"]
 
 [tool.poetry.dependencies]
-python = "^3.6"
+python = "^3.7"
 pyyaml = "^6.0"
 deepmerge = "^1.1.0"
 
 [tool.poetry.group.dev.dependencies]
 autopep8 = "^2.0.0"
+pytest = "^7.2.0"
 
 [build-system]
 requires = ["poetry-core"]

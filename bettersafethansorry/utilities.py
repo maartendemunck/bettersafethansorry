@@ -16,7 +16,7 @@ def signal_first_last(iterable):
     yield current_value, is_first, True
 
 
-def split_user_at_host(user_at_host, user_is_optional=False, host_is_optional=False):
+def split_user_host(user_at_host, user_is_optional=False, host_is_optional=False):
     user_host = re.fullmatch(
         '((?P<user>[^@]+)@|@)?(?P<host>[^@]+)?', user_at_host)
     if user_host is None:
