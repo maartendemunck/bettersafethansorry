@@ -35,6 +35,20 @@ def split_user_host(user_at_host, user_is_optional=False, host_is_optional=False
         return (user, host)
 
 
+def split_user_password_host(user_password_host, user_is_optional=False, password_is_optional=False, host_is_optional=False):
+    user_host = re.fullmatch(
+        '((?P<user>[^@:]+)(:(?P<password>[^@:]*))?@|@)?(?P<host>[^@]+)?', user_password_host)
+    if user_host is None:
+        raise ValueError(
+            "Value '{}' not in 'user@host' format".format(user_password_host))
+        return (None, None, None)
+    else:
+        user = user_host.groupdict()['user']
+        password = user_host.groupdict()['password']
+        host = user_host.groupdict()['host']
+        return (user, password, host)
+
+
 def is_file(host, filename):
     if host is not None:
         returncode = subprocess.run(

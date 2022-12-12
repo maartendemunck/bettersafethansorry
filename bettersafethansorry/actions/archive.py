@@ -185,6 +185,41 @@ class ArchiveFiles(ArchiveStuff):
         return tar_cmd if use_shell is False else ' '.join(tar_cmd)
 
 
+class ArchiveMySQL(ArchiveStuff):
+
+    required_keys = [
+        'source-database'
+    ]
+
+    optional_keys = {
+    }
+
+    def __init__(self, action_config, logger):
+        super().__init__(action_config, logger,
+                         ArchiveMySQL.required_keys, ArchiveMySQL.optional_keys)
+
+    def has_do(self):
+        return True
+
+    def _compose_archive_command(self, use_shell):
+        # Compose pg_dump command.
+        (user, password, database) = bsts_utils.split_user_password_host(
+            self.config['source-database'], True, True, True)
+        mysqldump_cmd = [
+            'mysqldump',
+            *(['--user={}'.format(user)] if user is not None else []),
+            *(['--password={}'.format(password)]
+              if password is not None and use_shell is False else []),
+            *(["--password='{}'".format(password)]
+              if password is not None and use_shell is True else []),
+            '--triggers',
+            '--routines',
+            '--events',
+            '{}'.format(database),
+        ]
+        return mysqldump_cmd if use_shell is False else ' '.join(mysqldump_cmd)
+
+
 class ArchivePostgreSQL(ArchiveStuff):
 
     required_keys = [
