@@ -163,14 +163,19 @@ class ArchiveFiles(ArchiveStuff):
     def _compose_archive_command(self, use_shell):
         # Compose tar command.
         if use_shell is False:
+            directory = '--directory={}'.format(
+                self.config['source-directory'])
             exclude_list = [
                 "--exclude={}".format(excluded) for excluded in self.config['excludes']]
         else:
+            directory = "--directory='{}'".format(
+                self.config['source-directory'])
             exclude_list = ["--exclude='{}'".format(excluded.replace(
                 "'", "\\'")) for excluded in self.config['excludes']]
         tar_cmd = [
             'tar',
-            '--directory={}'.format(self.config['source-directory']),
+            *([directory]),
+            *(exclude_list),
             '--create',
             '--numeric-owner',
             *(['--acls', '--xattrs'] if not self.config['minimalistic-tar'] else []),
@@ -178,7 +183,6 @@ class ArchiveFiles(ArchiveStuff):
             *(['--sort=name'] if not self.config['minimalistic-tar'] else []),
             *(['--dereference'] if self.config['follow-symlinks']
               and not self.config['minimalistic-tar'] else []),
-            *(exclude_list),
             '--file=-',
             '.'
         ]

@@ -162,7 +162,9 @@ def run_processes(commands, stdout_filename, logger, cwd=None):
         processes.append(subprocess.Popen(
             command,
             stdin=processes[-1].stdout if not is_first else None,
-            stdout=subprocess.PIPE if is_last is False or stdout_filename is None else stdout_file,
+            stdout=subprocess.PIPE if is_last is False else (
+                stdout_file if stdout_filename is not None else
+                subprocess.DEVNULL),
             stderr=subprocess.PIPE,
             cwd=cwd))
         exit_codes.append(None)
