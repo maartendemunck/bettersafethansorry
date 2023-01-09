@@ -29,7 +29,8 @@ class MasterLogger:
                 self.log_error("No filename specified for 'File' logger")
                 raise KeyError("No filename specified for 'File' logger")
             append = logger_config.pop('append', True)
-            file_handler = logging.FileHandler(filename, 'a' if append else 'w')
+            file_handler = logging.FileHandler(
+                filename, 'a' if append else 'w')
             file_handler.setLevel(logging.DEBUG)
             file_handler.setFormatter(logging.Formatter(
                 '%(asctime)s %(levelname).1s %(message)s', '%Y-%m-%d %H:%M:%S'))
@@ -41,8 +42,8 @@ class MasterLogger:
     def add_logging_handler(self, handler):
         self.loggers[0].get_python_logging_logger().addHandler(handler)
 
-    def start_backup(self, id, description):
-        self.__call_all_loggers('start_backup', id, description)
+    def start_backup(self, id, name, description):
+        self.__call_all_loggers('start_backup', id, name, description)
 
     def finish_backup(self, id, errors):
         self.__call_all_loggers('finish_backup', id, errors)
@@ -74,9 +75,10 @@ class PythonLoggingLogger:
     def __init__(self, python_logging_logger):
         self.logger = python_logging_logger
 
-    def start_backup(self, timestamp, id, description):
+    def start_backup(self, timestamp, id, name, description):
         if description is not None and len(description) > 0:
-            self.log_info(timestamp, "Starting backup '{}'".format(description))
+            self.log_info(
+                timestamp, "Starting backup '{}'".format(description))
         else:
             self.log_info(timestamp, 'Starting backup')
 
@@ -88,7 +90,8 @@ class PythonLoggingLogger:
 
     def start_action(self, timestamp, id, description):
         if description is not None and len(description) > 0:
-            self.log_info(timestamp, "Starting action '{}'".format(description))
+            self.log_info(
+                timestamp, "Starting action '{}'".format(description))
         else:
             self.log_info(timestamp, 'Starting action')
 
