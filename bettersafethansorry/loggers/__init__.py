@@ -1,12 +1,13 @@
 import datetime
 import logging
 import sys
+from bettersafethansorry.loggers.api import ApiRegistrar
 
 
 class MasterLogger:
 
     def __call_all_loggers(self, function_name, *args):
-        timestamp = datetime.datetime.utcnow()
+        timestamp = datetime.datetime.now(datetime.timezone.utc)
         for logger in self.loggers:
             function = getattr(logger, function_name)
             function(timestamp, *args)
@@ -36,8 +37,20 @@ class MasterLogger:
                 '%(asctime)s %(levelname).1s %(message)s', '%Y-%m-%d %H:%M:%S'))
             self.add_logging_handler(file_handler)
         else:
-            self.log_error("Unknown logger type '{}'".format(logger_type))
-            raise ValueError("Unknown logger type '{}'".format(logger_type))
+            try:
+                logger_class = globals()[logger_type]
+            except:
+                self.log_error("Unknown logger type '{}'".format(logger_type))
+                raise ValueError(
+                    "Unknown logger type '{}'".format(logger_type))
+            try:
+                logger_instance = logger_class(logger_config, self)
+            except:
+                self.log_error(
+                    "Unable to configure logger '{}'".format(logger_type))
+                raise ValueError(
+                    "Unable to configure logger '{}'".format(logger_type))
+            self.loggers.append(logger_instance)
 
     def add_logging_handler(self, handler):
         self.loggers[0].get_python_logging_logger().addHandler(handler)
@@ -59,13 +72,13 @@ class MasterLogger:
 
     def log_error(self, message):
         self.log_message(logging.ERROR, message)
-    
+
     def log_warning(self, message):
         self.log_message(logging.WARNING, message)
 
     def log_info(self, message):
         self.log_message(logging.INFO, message)
-    
+
     def log_debug(self, message):
         self.log_message(logging.DEBUG, message)
 
