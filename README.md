@@ -2,7 +2,7 @@
 
 Custom backups made easy.
 
-Copyright (C) 2022 Maarten De Munck (<maarten@vijfendertig.be>)
+Copyright (C) 2023 Maarten De Munck (<maarten@vijfendertig.be>)
 
 ## About Better Safe Than Sorry
 
@@ -138,8 +138,8 @@ Backup functions:
 - [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
 - [ ] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
-- [ ] Backup Git repositories
-- [ ] Backup Subversion repositories
+- [X] ~~Backup Git repositories~~ (not needed, archive directories instead)
+- [X] ~~Backup Subversion repositories~~ (not needed, archive directories instead)
 - [ ] Verify backups
 
 Backup configuration:
@@ -152,7 +152,7 @@ Backup configuration:
 Backup operation:
 
 - [X] Command line interface (CLI)
-- [ ] Store timestamps
+- [X] Store timestamps
 - [ ] Run outdated backups automatically
 - [ ] Warn for outdated backups
 - [ ] Continuous logging (instead of buffering until the subprocesses finish)
