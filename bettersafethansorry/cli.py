@@ -70,7 +70,8 @@ def run():
             print()
             print(yaml.dump({args.backup: backup_config}))
         else:  # args.command.lower() == 'do':
-            error = bsts_operation.run_backup(backup_config, dry_run, logger)
+            error = bsts_operation.run_backup(
+                args.backup, backup_config, dry_run, logger)
             if error is not None and len(error) > 0:
                 exit(errno.EIO)
     else:

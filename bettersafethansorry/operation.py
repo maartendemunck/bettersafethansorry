@@ -4,10 +4,10 @@ from bettersafethansorry.actions.rsync import RsyncFiles
 from bettersafethansorry.actions.repositories import UpdateGitAnnex
 
 
-def run_backup(backup_config, dry_run, logger):
+def run_backup(backup_name, backup_config, dry_run, logger):
     description = backup_config.pop('description', '')
     id = uuid.uuid4()
-    logger.start_backup(id, description)
+    logger.start_backup(id, backup_name, description)
 
     errors = []
     for action_config in backup_config['actions']:
