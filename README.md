@@ -2,7 +2,7 @@
 
 Custom backups made easy.
 
-Copyright (C) 2023 Maarten De Munck (<maarten@vijfendertig.be>)
+Copyright (C) 2022-2023 Maarten De Munck (<maarten@vijfendertig.be>)
 
 ## About Better Safe Than Sorry
 
@@ -16,9 +16,9 @@ To make things a bit easier to maintain, I started writing Better Safe Than Sorr
 
 ## Getting Started
 
-To decrease my electricity consumption, I recently bought a mini server (wormwood) to run some applications that previously ran on my desktop PC (calvin) so that I can just shut down my desktop PC when I'm not using it. This system currently runs my maarten@home website with some webapps and a Gitea service and is the perfect example to show how Better Safe Than Sorry works.
+To decrease my electricity consumption, I recently bought a mini server (wormwood) to run some applications that previously ran on my desktop PC (calvin) so that I can just shut down my desktop PC when I'm not using it. This system currently runs my maarten@home website with some webapps (and some other services, but let's keep the example small) in Docker containers and is the perfect example to show how Better Safe Than Sorry works.
 
-The most important data on this system are of course the data (database and media files) of my maarten@home website and the data (database, repositories and media files) of the Gitea service. The website itself and the deployment scripts of the website and the Gitea service are stored in Git repositories, so no additional data backups are needed. To reduce the recovery time in case the the SSD or the full system would fail, I want to make a full system backup now and then, but no data is lost if this backup is a bit outdated.
+The most important data on this system are of course the data (database and media files) of my maarten@home website (and the data of the other services). The website itself and the deployment scripts of the website and other services are stored in Git repositories, so no additional data backups are needed. To reduce the recovery time in case the the SSD or the full system would fail, I want to make a full system backup now and then, but this takes a lot more time and no data is lost if this backup is a bit outdated, so I split the data and system backups.
 
 These requirements yield this configuration file `~/.config/bettersafethansorry/config.yaml` for Better Safe Than Sorry:
 
@@ -36,6 +36,8 @@ backups:
         destination-file: /srv/backup/hosts/wormwood/images/wormwood-root.tar.bz2
         destination-compression: /usr/bin/bzip2 -9
         keep: 3
+        excludes:
+          - ./sys
       - description: Backup /boot filesystem
         action: ArchiveFiles
         one-file-system: true
@@ -73,26 +75,6 @@ backups:
         destination-file: /srv/backup/hosts/wormwood/data/maartenathome-media.tar.bz2
         destination-compression: bzip2
         keep: 3
-  wormwood-gitea:
-    description: Gitea@home
-    actions:
-      - description: Archive Gitea database
-        action: ArchivePostgreSQL
-        source-host: maarten@wormwood.home.vijfendertig.be
-        source-container: maartenathome-gitea-postgres-1
-        source-database: gitea@gitea
-        destination-file: /srv/backup/hosts/wormwood/data/gitea-database.sql.bz2
-        destination-compression: bzip2
-        keep: 3
-      - description: Archive Gitea configuration and repositories
-        action: ArchiveFiles
-        source-host: maarten@wormwood.home.vijfendertig.be
-        source-container: maartenathome-gitea-server-1
-        source-directory: /data/
-        minimalistic-tar: true
-        destination-file: /srv/backup/hosts/wormwood/data/gitea-data.tar.bz2
-        destination-compression: bzip2
-        keep: 3
 loggers:
   - logger: File
     filename: /home/maarten/.local/log/bettersafethansorry.log
@@ -101,13 +83,12 @@ loggers:
 
 The configuration file defines three backups:
 
-- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I bzip2 the tar archives on the desktop PC.
+- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I send the backups as (uncompressed) tar files to my desktop PC and bzip2 them there.
 - `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off). Again, compression is done on the system running the backup.
-- `wormwood-gitea` makes a backup of the Gitea database in the Gitea PostgreSQL container and the data directory in the Gitea server container. Again, backups are made to whatever system runs the backup and compression is done on the system running the backup.
 
 Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
 
-`bsts list` lists the available backups and `bsts do wormwood-image`, `bsts do wormwood-maartenathome` and `bsts do wormwood-gitea` run the individual backups.
+`bsts list` lists the available backups and `bsts do wormwood-image` and `bsts do wormwood-maartenathome` run the individual backups.
 
 ## Usage
 
@@ -117,7 +98,7 @@ Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
 
 Positional arguments:
 
-- `command`: `list`, `show` or `do`
+- `command`: `list`, `list-status`, `show` or `do`
 - `backup`: backup to show or perform (as defined in the configuration file)
 
 Options:
@@ -154,7 +135,7 @@ Backup operation:
 - [X] Command line interface (CLI)
 - [X] Store timestamps
 - [ ] Run outdated backups automatically
-- [ ] Warn for outdated backups
+- [X] Warn for outdated backups
 - [ ] Continuous logging (instead of buffering until the subprocesses finish)
 - [ ] Graphical user interface (GUI)
 

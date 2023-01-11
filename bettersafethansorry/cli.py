@@ -1,7 +1,7 @@
 import argparse
 import bettersafethansorry.configuration as bsts_configuration
 import bettersafethansorry.operation as bsts_operation
-import bettersafethansorry.loggers as bsts_loggers
+import bettersafethansorry.logging as bsts_logging
 import errno
 import os
 import sys
@@ -10,13 +10,13 @@ import yaml
 
 def run():
     # Configure the master logger.
-    logger = bsts_loggers.MasterLogger()
+    logger = bsts_logging.MasterLogger()
 
     # Parse command line arguments.
     parser = argparse.ArgumentParser(
         description='Better Safe Than Sorry. Custom backups made easy.')
     parser.add_argument(
-        'command', help="Command ('list', 'show' or 'do'")
+        'command', help="Command ('list', 'list-status', 'show' or 'do'")
     parser.add_argument(
         'backup', nargs='?', help="Select backup (for 'show' or 'do'")
     parser.add_argument('-c', '--config', help='Select config file')
@@ -52,6 +52,22 @@ def run():
                 print('- {}: {}'.format(backup, description))
             else:
                 print('- {}'.format(backup))
+    elif args.command.lower() == 'list-status':
+        statuses = {None: [], False: [], True: []}
+        status_strings = {None: 'No information available',
+                          False: 'Up to date',
+                          True: 'Outdated'}
+        for backup, description in config.list_backups_and_descriptions().items():
+            status = logger.is_outdated(backup)
+            statuses[status].append((backup, description))
+        for category in (None, False, True):
+            if len(statuses[category]) > 0:
+                print('{}:'.format(status_strings[category]))
+                for backup, description in statuses[category]:
+                    if description is not None:
+                        print('- {}: {}'.format(backup, description))
+                    else:
+                        print('- {}'.format(backup))
     elif args.command.lower() in ('show', 'do'):
         dry_run = True if args.dry_run else False
         if (args.backup is None):
