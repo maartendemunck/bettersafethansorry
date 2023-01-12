@@ -73,6 +73,17 @@ python-versions = ">=3.7"
 test = ["pytest (>=6)"]
 
 [[package]]
+name = "exif"
+version = "1.5.0"
+description = "Read and modify image EXIF metadata using Python."
+category = "main"
+optional = false
+python-versions = ">=3.7"
+
+[package.dependencies]
+plum-py = ">=0.5.0,<2.0.0"
+
+[[package]]
 name = "idna"
 version = "3.4"
 description = "Internationalized Domain Names in Applications (IDNA)"
@@ -127,6 +138,14 @@ importlib-metadata = {version = ">=0.12", markers = "python_version < \"3.8\""}
 [package.extras]
 dev = ["pre-commit", "tox"]
 testing = ["pytest", "pytest-benchmark"]
+
+[[package]]
+name = "plum-py"
+version = "0.8.5"
+description = "Pack/Unpack Memory."
+category = "main"
+optional = false
+python-versions = ">=3.6.*"
 
 [[package]]
 name = "pycodestyle"
@@ -227,7 +246,7 @@ testing = ["flake8 (<5)", "func-timeout", "jaraco.functools", "jaraco.itertools"
 [metadata]
 lock-version = "1.1"
 python-versions = "^3.7"
-content-hash = "d67f72dcc8635fef8141cdf14668742fb33537ba43d7d867991fddd4c201f2fd"
+content-hash = "ac0cad866a5eaae06fd612e2111d54d51318654331a2875c57cac969a08f79bc"
 
 [metadata.files]
 attrs = [
@@ -258,6 +277,10 @@ exceptiongroup = [
     {file = "exceptiongroup-1.1.0-py3-none-any.whl", hash = "sha256:327cbda3da756e2de031a3107b81ab7b3770a602c4d16ca618298c526f4bec1e"},
     {file = "exceptiongroup-1.1.0.tar.gz", hash = "sha256:bcb67d800a4497e1b404c2dd44fca47d3b7a5e5433dbab67f96c1a685cdfdf23"},
 ]
+exif = [
+    {file = "exif-1.5.0-py3-none-any.whl", hash = "sha256:aee8f9ee66caf32470f0e53601ba137e15394eeb455b65d0e5eb99b6c750b8ba"},
+    {file = "exif-1.5.0.tar.gz", hash = "sha256:640e946f3090f299e7a018853dc3c5ece16774a832ff4f81978bcca6a85a748c"},
+]
 idna = [
     {file = "idna-3.4-py3-none-any.whl", hash = "sha256:90b77e79eaa3eba6de819a0c442c0b4ceefc341a7a2ab77d7562bf49f425c5c2"},
     {file = "idna-3.4.tar.gz", hash = "sha256:814f528e8dead7d329833b91c5faa87d60bf71824cd12a7530b5526063d02cb4"},
@@ -277,6 +300,10 @@ packaging = [
 pluggy = [
     {file = "pluggy-1.0.0-py2.py3-none-any.whl", hash = "sha256:74134bbf457f031a36d68416e1509f34bd5ccc019f0bcc952c7b909d06b37bd3"},
     {file = "pluggy-1.0.0.tar.gz", hash = "sha256:4224373bacce55f955a878bf9cfa763c1e360858e330072059e10bad68531159"},
+]
+plum-py = [
+    {file = "plum-py-0.8.5.tar.gz", hash = "sha256:5bb0e20d7f51337f716dab073018c6f183e3a965e33979e1d3b98634e967b5d8"},
+    {file = "plum_py-0.8.5-py3-none-any.whl", hash = "sha256:eac8a73c9d2471f7f2ab68dcb0247b972e2c973dd8e71ed4d6ea5da7cd4e0296"},
 ]
 pycodestyle = [
     {file = "pycodestyle-2.10.0-py2.py3-none-any.whl", hash = "sha256:8a4eaf0d0495c7395bdab3589ac2db602797d76207242c17d470186815706610"},
