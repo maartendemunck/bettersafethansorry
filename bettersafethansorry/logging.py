@@ -7,12 +7,6 @@ from bettersafethansorry.loggers.api import ApiRegistrar
 
 class MasterLogger:
 
-    def __call_all_loggers(self, function_name, *args):
-        timestamp = datetime.datetime.now(datetime.timezone.utc)
-        for logger in self.loggers:
-            function = getattr(logger, function_name)
-            function(timestamp, *args)
-
     def __init__(self):
         # Configure and add a Python logging logger.
         self.loggers = [PythonLogger(logging.getLogger('BSTS'))]
@@ -56,20 +50,26 @@ class MasterLogger:
     def add_logging_handler(self, handler):
         self.loggers[0].get_python_logging_logger().addHandler(handler)
 
+    def _call_all_loggers(self, function_name, *args):
+        timestamp = datetime.datetime.now(datetime.timezone.utc)
+        for logger in self.loggers:
+            function = getattr(logger, function_name)
+            function(timestamp, *args)
+
     def start_backup(self, id, name, description):
-        self.__call_all_loggers('start_backup', id, name, description)
+        self._call_all_loggers('start_backup', id, name, description)
 
     def finish_backup(self, id, errors):
-        self.__call_all_loggers('finish_backup', id, errors)
+        self._call_all_loggers('finish_backup', id, errors)
 
     def start_action(self, id, description):
-        self.__call_all_loggers('start_action', id, description)
+        self._call_all_loggers('start_action', id, description)
 
     def finish_action(self, id, errors):
-        self.__call_all_loggers('finish_action', id, errors)
+        self._call_all_loggers('finish_action', id, errors)
 
     def log_message(self, level, message):
-        self.__call_all_loggers('log_message', level, message)
+        self._call_all_loggers('log_message', level, message)
 
     def log_error(self, message):
         self.log_message(logging.ERROR, message)
