@@ -1,5 +1,6 @@
 import uuid
 from bettersafethansorry.actions.archive import ArchiveFiles, ArchivePostgreSQL, ArchiveMySQL
+from bettersafethansorry.actions.dcim import CopyPhotosVideos
 from bettersafethansorry.actions.rsync import RsyncFiles
 from bettersafethansorry.actions.repositories import UpdateGitAnnex
 
