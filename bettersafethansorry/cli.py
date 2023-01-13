@@ -52,7 +52,7 @@ def run():
                 print('- {}: {}'.format(backup, description))
             else:
                 print('- {}'.format(backup))
-    elif args.command.lower() == 'list-status':
+    elif args.command.lower() == 'status':
         statuses = {None: [], False: [], True: []}
         status_strings = {None: 'No information available',
                           False: 'Up to date',
@@ -68,6 +68,8 @@ def run():
                         print('- {}: {}'.format(backup, description))
                     else:
                         print('- {}'.format(backup))
+        if len(statuses[True]) > 0 or len(statuses[None]) > 0:
+            sys.exit(127)
     elif args.command.lower() in ('show', 'do'):
         dry_run = True if args.dry_run else False
         if (args.backup is None):
@@ -89,10 +91,10 @@ def run():
             error = bsts_operation.run_backup(
                 args.backup, backup_config, dry_run, logger)
             if error is not None and len(error) > 0:
-                exit(errno.EIO)
+                sys.exit(errno.EIO)
     else:
         logger.log_error("Unknown command '{}'".format(args.command))
-        exit(errno.EINVAL)
+        sys.exit(errno.EINVAL)
 
     # Exit
     sys.exit(0)
