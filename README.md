@@ -2,7 +2,7 @@
 
 Custom backups made easy.
 
-Copyright (C) 2022-2023 Maarten De Munck (<maarten@vijfendertig.be>)
+Copyright (C) 2022-2023 Maarten De Munck (<maarten@vijfendertig.be>).
 
 ## About Better Safe Than Sorry
 
@@ -105,6 +105,7 @@ Options:
 
 - `-h` or `--help`: show this help message and exit
 - `-c CONFIG` or `--config CONFIG`: select configuration file
+- `-a` or `--auto`: only perform the backup if it is outdated
 - `-n` or `--dry-run`: do not actually perform actions, only log them
 
 ### Configuration file
@@ -117,7 +118,7 @@ Backup functions:
 - [X] Archive files, directories and filesystems, both local and remote, both native and in a docker container
 - [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
 - [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
-- [ ] Archive photos and videos to a date- and time based directory structure
+- [X] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode movies
 - [X] ~~Backup Git repositories~~ (not needed, archive directories instead)
 - [X] ~~Backup Subversion repositories~~ (not needed, archive directories instead)
@@ -134,7 +135,7 @@ Backup operation:
 
 - [X] Command line interface (CLI)
 - [X] Store timestamps
-- [ ] Run outdated backups automatically
+- [X] Run outdated backups automatically
 - [X] Warn for outdated backups
 - [ ] Continuous logging (instead of buffering until the subprocesses finish)
 - [ ] Graphical user interface (GUI)

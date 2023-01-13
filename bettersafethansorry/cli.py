@@ -16,10 +16,12 @@ def run():
     parser = argparse.ArgumentParser(
         description='Better Safe Than Sorry. Custom backups made easy.')
     parser.add_argument(
-        'command', help="Command ('list', 'list-status', 'show' or 'do'")
+        'command', help="Command ('list', 'status', 'show' or 'do'")
     parser.add_argument(
         'backup', nargs='?', help="Select backup (for 'show' or 'do'")
     parser.add_argument('-c', '--config', help='Select config file')
+    parser.add_argument('-a', '--auto',
+                        help="Only perform backup if it's outdated", action='store_true')
     parser.add_argument('-n', '--dry-run',
                         help='Only display actions', action='store_true')
     args = parser.parse_args()
@@ -72,6 +74,7 @@ def run():
             sys.exit(127)
     elif args.command.lower() in ('show', 'do'):
         dry_run = True if args.dry_run else False
+        always = False if args.auto else True
         if (args.backup is None):
             logger.log_error("No backup specified")
             sys.exit(errno.EINVAL)
@@ -88,10 +91,11 @@ def run():
             print()
             print(yaml.dump({args.backup: backup_config}))
         else:  # args.command.lower() == 'do':
-            error = bsts_operation.run_backup(
-                args.backup, backup_config, dry_run, logger)
-            if error is not None and len(error) > 0:
-                sys.exit(errno.EIO)
+            if always or logger.is_outdated(args.backup) == True:
+                error = bsts_operation.run_backup(
+                    args.backup, backup_config, dry_run, logger)
+                if error is not None and len(error) > 0:
+                    sys.exit(errno.EIO)
     else:
         logger.log_error("Unknown command '{}'".format(args.command))
         sys.exit(errno.EINVAL)
