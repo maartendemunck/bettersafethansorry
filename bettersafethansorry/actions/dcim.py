@@ -33,10 +33,17 @@ class CopyPhotosVideos(Action):
             for filename in filenames_filtered:
                 source_filepath = os.path.join(dirpath, filename)
                 source_stat = os.stat(source_filepath)
-                with open(source_filepath, 'rb') as image_file:
-                    exif_info = exif.Image(image_file)
-                timestamp = datetime.datetime.strptime(
-                    exif_info.get('datetime_original'), '%Y:%m:%d %H:%M:%S')
+                try:
+                    with open(source_filepath, 'rb') as image_file:
+                        exif_info = exif.Image(image_file)
+                    timestamp = datetime.datetime.strptime(
+                        exif_info.get('datetime_original'), '%Y:%m:%d %H:%M:%S')
+                    timestamp_source = 'EXIF data'
+                except:
+                    # Use the timestamp of the source file if we're unable to read the EXIF data.
+                    timestamp = datetime.datetime.fromtimestamp(
+                        source_stat.st_mtime)
+                    timestamp_source = 'file modification time'
                 destination_dirpath = timestamp.strftime(
                     self.config['destination-directory'])
                 destination_filepath = os.path.join(
@@ -45,16 +52,17 @@ class CopyPhotosVideos(Action):
                     self.logger.log_debug('Skipping {}'.format(filename))
                 else:
                     if not dry_run:
-                        self.logger.log_info('Copying {} to {}'.format(
-                            filename, destination_dirpath))
                         if not os.path.exists(destination_dirpath):
                             self.logger.log_debug(
                                 'Creating directory {}'.format(destination_dirpath))
                             os.makedirs(destination_dirpath)
+                        self.logger.log_info('Copying {} to {} (based on {})'.format(
+                            filename, destination_dirpath, timestamp_source))
                         shutil.copyfile(source_filepath, destination_filepath)
                         os.utime(destination_filepath,
                                  (source_stat.st_atime, source_stat.st_mtime))
                     else:
-                        self.logger.log_info('Dry run, skipping copying {} to {}'.format(
-                            filename, destination_dirpath))
+                        self.logger.log_info(
+                            'Dry run, skipping copying {} to {} (based on {})'.format(
+                                filename, destination_dirpath, timestamp_source))
         return []
