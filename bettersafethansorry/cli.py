@@ -56,20 +56,22 @@ def run():
                 print('- {}'.format(backup))
     elif args.command.lower() == 'status':
         statuses = {None: [], False: [], True: []}
-        status_strings = {None: 'No information available',
-                          False: 'Up to date',
-                          True: 'Outdated'}
+        status_strings = {None: ('No information available', '?'),
+                          False: ('Up to date', '+'),
+                          True: ('Outdated', '-')}
         for backup, description in config.list_backups_and_descriptions().items():
             status = logger.is_outdated(backup)
             statuses[status].append((backup, description))
         for category in (None, False, True):
             if len(statuses[category]) > 0:
-                print('{}:'.format(status_strings[category]))
+                print('{}:'.format(status_strings[category][0]))
                 for backup, description in statuses[category]:
                     if description is not None:
-                        print('- {}: {}'.format(backup, description))
+                        print('{} {}: {}'.format(
+                            status_strings[category][1], backup, description))
                     else:
-                        print('- {}'.format(backup))
+                        print('{} {}'.format(
+                            status_strings[category][1], backup))
         if len(statuses[True]) > 0 or len(statuses[None]) > 0:
             sys.exit(127)
     elif args.command.lower() in ('show', 'do'):
