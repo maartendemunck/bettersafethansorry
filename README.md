@@ -98,7 +98,7 @@ Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
 
 Positional arguments:
 
-- `command`: `list`, `list-status`, `show` or `do`
+- `command`: `list`, `status`, `show` or `do`
 - `backup`: backup to show or perform (as defined in the configuration file)
 
 Options:
@@ -117,12 +117,13 @@ Backup functions:
 - [X] Rsync files and directories, both local and remote
 - [X] Archive files, directories and filesystems, both local and remote, both native and in a docker container
 - [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
+- [X] Backup MySQL and MariaDB databases, both local and remote, both native and in a docker container
 - [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
+- [ ] Verify Git-annex repositories
 - [X] Archive photos and videos to a date- and time based directory structure
-- [ ] Re-encode movies
+- [ ] Re-encode audio and video
 - [X] ~~Backup Git repositories~~ (not needed, archive directories instead)
 - [X] ~~Backup Subversion repositories~~ (not needed, archive directories instead)
-- [ ] Verify backups
 
 Backup configuration:
 
@@ -137,12 +138,14 @@ Backup operation:
 - [X] Store timestamps
 - [X] Run outdated backups automatically
 - [X] Warn for outdated backups
+- [ ] Error handling
 - [ ] Continuous logging (instead of buffering until the subprocesses finish)
-- [ ] Graphical user interface (GUI)
+- [ ] Colors for CLI
+- [ ] Graphical user interface (GUI) (?)
 
 Other stuff:
 
-- [ ] Localization (en, nl...)
+- [ ] Localization (en, nl...) (?)
 
 ## License
 
