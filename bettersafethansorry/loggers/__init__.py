@@ -18,5 +18,5 @@ class Logger:
     def log_message(self, timestamp, level, message):
         pass
 
-    def is_outdated(self, timestamp, name):
+    def is_backup_outdated(self, timestamp, name):
         return None

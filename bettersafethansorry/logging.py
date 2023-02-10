@@ -83,11 +83,11 @@ class MasterLogger:
     def log_debug(self, message):
         self.log_message(logging.DEBUG, message)
 
-    def is_outdated(self, name):
+    def is_backup_outdated(self, name):
         timestamp = datetime.datetime.now(datetime.timezone.utc)
         outdated = None
         for logger in self.loggers:
-            outdated = outdated or logger.is_outdated(timestamp, name)
+            outdated = outdated or logger.is_backup_outdated(timestamp, name)
         return outdated
 
 

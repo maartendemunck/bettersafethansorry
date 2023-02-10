@@ -14,11 +14,11 @@ class Configuration:
 
     def load_yaml(self, filename):
         self.logger.log_debug('Using YAML loader {}'.format(SafeLoader))
-        self.logger.log_info("Using config file '{}'".format(filename))
+        self.logger.log_info("Using configuration file '{}'".format(filename))
         with open(filename, mode="rt", encoding="utf-8") as file:
             self.config = yaml.load(file, SafeLoader)
         if self.config is None:
-            self.logger.log_error('Unable to read config file')
+            self.logger.log_error('Unable to read configuration file')
 
     def list_backups(self):
         return self.config['backups'].keys()

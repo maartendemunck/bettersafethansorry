@@ -55,7 +55,7 @@ class ApiRegistrar(Logger):
                        'timestamp': timestamp.isoformat()}
             requests.post(self.update_url.format(name=name), json=request)
 
-    def is_outdated(self, timestamp, name):
+    def is_backup_outdated(self, timestamp, name):
         response = requests.get(self.info_url.format(name=name))
         if response.status_code != 200:
             return None

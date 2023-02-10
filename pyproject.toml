@@ -25,4 +25,4 @@ requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"
 
 [tool.poetry.scripts]
-bsts = "bettersafethansorry.cli:run"
+bsts = "bettersafethansorry.cli:main"
