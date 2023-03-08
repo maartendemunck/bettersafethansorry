@@ -30,7 +30,7 @@ class RsyncFiles(Action):
             source += '{}:'.format(self.config['source-host'])
         source += self.config['source-directory']
         destination = ''
-        if self.config['destination-host'] is not None and self.config['source_host'] is None:
+        if self.config['destination-host'] is not None and self.config['source-host'] is None:
             destination += '{}:'.format(self.config['destination-host'])
         destination += self.config['destination-directory']
         if use_shell is False:
@@ -55,7 +55,7 @@ class RsyncFiles(Action):
         return rsync_command if use_shell is False else ' '.join(rsync_command)
 
     def _compose_command(self):
-        if self.config['destination-host'] is not None and self.config['source_host'] is not None:
+        if self.config['destination-host'] is not None and self.config['source-host'] is not None:
             return [
                 'ssh',
                 self.config['destination-host'],

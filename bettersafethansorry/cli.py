@@ -157,7 +157,7 @@ def do_backup(backup, run_only_when_outdated, dry_run):
         errors = bsts_operation.run_backup(
             backup, get_postprocessed_backup_configuration(backup), dry_run, logger)
         if errors is not None and len(errors) > 0:
-            raise Exception('Error(s) encountered during backup: "{errors}"')
+            raise Exception(f'Error(s) encountered during backup: "{errors}"')
 
 
 if __name__ == '__main__':

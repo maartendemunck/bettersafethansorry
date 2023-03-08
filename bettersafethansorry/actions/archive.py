@@ -24,41 +24,60 @@ class ArchiveStuff(Action):
         super().__init__(action_config, logger, required_keys, optional_keys)
 
     def _compose_source_command(self):
-        # Compose archive command.
-        if self.config['source-container'] is None and self.config['source-host'] is None:
-            archive_cmd = self._compose_archive_command(False)
-        else:
-            archive_cmd = self._compose_archive_command(True)
-        # Compose docker command.
-        if self.config['source-container'] is not None:
+        source_container = self.config['source-container']
+        run_archive_command_in_container = source_container is not None
+        source_host = self.config['source-host']
+        run_archive_command_in_ssh = source_host is not None
+        run_archive_command_in_shell = (
+            run_archive_command_in_container or run_archive_command_in_ssh)
+        archive_cmd = self._compose_archive_command(
+            run_archive_command_in_shell)
+        source_cmd = archive_cmd
+        if run_archive_command_in_container:
+            docker_cmd = self._compose_source_docker_command(source_container)
+            source_cmd = docker_cmd + [source_cmd]
+        if run_archive_command_in_ssh:
+            source_cmd = self._convert_command_to_string(source_cmd)
+            ssh_command = self._compose_source_ssh_command(source_host)
+            source_compression = self.config['source-compression']
+            source_compression_cmd = self._compose_source_compression_command(
+                source_compression)
+            source_cmd = ssh_command + [source_cmd + source_compression_cmd]
+        return source_cmd
+
+    def _compose_source_docker_command(self, source_container):
+        run_archive_command_in_container = source_container is not None
+        if run_archive_command_in_container:
             (user, container) = bsts_utils.split_user_host(
-                self.config['source-container'], True, False)
+                source_container, True, False)
             docker_cmd = [
                 'docker',
                 'exec',
                 *(['--user', user] if user is not None else []),
                 container
             ]
-        # Compose ssh command.
-        if self.config['source-host'] is not None:
+        else:
+            docker_cmd = []
+        return docker_cmd
+
+    def _compose_source_ssh_command(self, source_host):
+        run_archive_command_in_ssh = source_host is not None
+        if run_archive_command_in_ssh:
             ssh_command = [
                 'ssh',
-                self.config['source-host']
+                source_host
             ]
-        # Compose full command.
-        cmd = archive_cmd
-        if self.config['source-container'] is not None:
-            cmd = docker_cmd + [cmd]
-        if self.config['source-host'] is not None:
-            if isinstance(cmd, list):
-                cmd = ' '.join(cmd)
-            if self.config['source-compression'] is not None:
-                source_compression_cmd = ' | {}'.format(
-                    self.config['source-compression'])
-            else:
-                source_compression_cmd = ''
-            cmd = ssh_command + [cmd + source_compression_cmd]
-        return cmd
+        else:
+            ssh_command = []
+        return ssh_command
+
+    def _compose_source_compression_command(self, source_compression):
+        use_source_compression = source_compression is not None
+        if use_source_compression:
+            source_compression_cmd = ' | {}'.format(source_compression)
+        else:
+            source_compression_cmd = ''
+        return source_compression_cmd
 
     def _compose_compression_command(self):
         if self.config['compression']:
@@ -95,23 +114,17 @@ class ArchiveStuff(Action):
                 '{}.tmp'.format(self.config['destination-file'])
         return destination_filename
 
+    def _convert_command_to_string(self, command):
+        if isinstance(command, list):
+            command = ' '.join(command)
+        return command
+
     def do(self, dry_run):
-        if not self.has_do():
-            raise NotImplementedError(
-                "'{}' action doesn't support 'do' command".format(self.__class__.__name__))
+        self._assure_do_function_is_implemented()
         self.logger.log_debug(
             "Configuring '{}' action".format(self.__class__.__name__))
-        # Create commands from action configuration.
-        source_cmd = self._compose_source_command()
-        compression_cmd = self._compose_compression_command()
-        destination_cmd = self._compose_destination_command()
+        commands = self._compose_commands()
         destination_filename = self._compose_destination_filename()
-        commands = [
-            source_cmd,
-            *([compression_cmd] if compression_cmd is not None else []),
-            *([destination_cmd] if destination_cmd is not None else [])
-        ]
-        # Run commands.
         self.logger.log_debug(
             "Executing '{}' action".format(self.__class__.__name__))
         errors = []
@@ -138,6 +151,23 @@ class ArchiveStuff(Action):
         else:
             self.logger.log_info('Dry run, skipping actions')
         return errors
+
+    def _assure_do_function_is_implemented(self):
+        if not self.has_do():
+            raise NotImplementedError(
+                "'{}' action doesn't support 'do' command".format(self.__class__.__name__))
+        return
+
+    def _compose_commands(self):
+        source_cmd = self._compose_source_command()
+        compression_cmd = self._compose_compression_command()
+        destination_cmd = self._compose_destination_command()
+        commands = [
+            source_cmd,
+            *([compression_cmd] if compression_cmd is not None else []),
+            *([destination_cmd] if destination_cmd is not None else [])
+        ]
+        return commands
 
 
 class ArchiveFiles(ArchiveStuff):
