@@ -17,10 +17,13 @@ class Action:
                 self.logger.log_error(
                     "Required parameter '{}' not specified in '{}' config".format(key, self.__class__.__name__))
                 raise KeyError()
-        # Set defaults for optional keys.
+        # Set defaults for optional keys; ignore keys that were already processed as required keys.
         optional_keys = {**Action.optional_keys, **extra_optional_keys}
         for key in optional_keys:
-            self.config[key] = action_config.pop(key, optional_keys[key])
+            if key not in required_keys:
+                self.config[key] = action_config.pop(key, optional_keys[key])
+            else:
+                pass
         # Warn for unrecognised keys.
         for key in action_config:
             logger.log_warning(

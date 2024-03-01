@@ -3,6 +3,7 @@ from bettersafethansorry.actions.archive import ArchiveFiles, ArchivePostgreSQL,
 from bettersafethansorry.actions.dcim import CopyPhotosVideos
 from bettersafethansorry.actions.rsync import RsyncFiles
 from bettersafethansorry.actions.repositories import UpdateGitAnnex
+from bettersafethansorry.actions.minecraft import ArchiveMinecraftServerJavaEdition
 
 
 def run_backup(backup_name, backup_config, dry_run, logger):
@@ -24,7 +25,11 @@ def run_backup_action(action_config, dry_run, logger):
     id = uuid.uuid4()
     logger.start_action(id, description)
 
-    action_class = globals()[action_config.pop('action')]
+    try:
+        action_class = globals()[action_config.pop('action')]
+    except KeyError as error:
+        raise RuntimeError("Unknown action {}".format(error)) from error
+
     action_instance = action_class(action_config, logger)
     errors = action_instance.do(dry_run)
 

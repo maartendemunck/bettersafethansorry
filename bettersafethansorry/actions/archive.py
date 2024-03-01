@@ -1,3 +1,4 @@
+import time
 from bettersafethansorry.actions import Action
 import bettersafethansorry.utilities as bsts_utils
 
@@ -23,27 +24,10 @@ class ArchiveStuff(Action):
         optional_keys = {**ArchiveStuff.optional_keys, **extra_optional_keys}
         super().__init__(action_config, logger, required_keys, optional_keys)
 
-    def _compose_source_command(self):
-        source_container = self.config['source-container']
-        run_archive_command_in_container = source_container is not None
-        source_host = self.config['source-host']
-        run_archive_command_in_ssh = source_host is not None
-        run_archive_command_in_shell = (
-            run_archive_command_in_container or run_archive_command_in_ssh)
-        archive_cmd = self._compose_archive_command(
-            run_archive_command_in_shell)
-        source_cmd = archive_cmd
-        if run_archive_command_in_container:
-            docker_cmd = self._compose_source_docker_command(source_container)
-            source_cmd = docker_cmd + [source_cmd]
-        if run_archive_command_in_ssh:
-            source_cmd = self._convert_command_to_string(source_cmd)
-            ssh_command = self._compose_source_ssh_command(source_host)
-            source_compression = self.config['source-compression']
-            source_compression_cmd = self._compose_source_compression_command(
-                source_compression)
-            source_cmd = ssh_command + [source_cmd + source_compression_cmd]
-        return source_cmd
+    def _convert_command_to_string(self, command):
+        if isinstance(command, list):
+            command = ' '.join(command)
+        return command
 
     def _compose_source_docker_command(self, source_container):
         run_archive_command_in_container = source_container is not None
@@ -79,6 +63,35 @@ class ArchiveStuff(Action):
             source_compression_cmd = ''
         return source_compression_cmd
 
+    def _compose_source_commands(self, source_commands_function, is_archive_function):
+        source_container = self.config['source-container']
+        run_archive_command_in_container = source_container is not None
+        source_host = self.config['source-host']
+        run_archive_command_in_ssh = source_host is not None
+        run_archive_command_in_shell = (
+            run_archive_command_in_container or run_archive_command_in_ssh)
+        if is_archive_function:
+            source_cmds = [source_commands_function(run_archive_command_in_shell)]
+        else:
+            source_cmds = source_commands_function(run_archive_command_in_shell)
+        full_source_cmds = []
+        for source_cmd in source_cmds:
+            full_source_cmd = source_cmd
+            if run_archive_command_in_container:
+                docker_cmd = self._compose_source_docker_command(source_container)
+                full_source_cmd = docker_cmd + [full_source_cmd]
+            if run_archive_command_in_ssh:
+                full_source_cmd = self._convert_command_to_string(full_source_cmd)
+                ssh_command = self._compose_source_ssh_command(source_host)
+                if is_archive_function:
+                    source_compression = self.config['source-compression']
+                else:
+                    source_compression = None
+                source_compression_cmd = self._compose_source_compression_command(source_compression)
+                full_source_cmd = ssh_command + [full_source_cmd + source_compression_cmd]
+            full_source_cmds.append(full_source_cmd)
+        return full_source_cmds
+
     def _compose_compression_command(self):
         if self.config['compression']:
             compression_cmd = self.config['compression'].split(' ')
@@ -106,6 +119,31 @@ class ArchiveStuff(Action):
             destination_cmd = None
         return destination_cmd
 
+    def _compose_pre_archive_commands(self):
+        if hasattr(self.__class__, '_compose_base_pre_archive_commands') and \
+            callable(getattr(self.__class__, '_compose_base_pre_archive_commands')):
+            return self._compose_source_commands(self._compose_base_pre_archive_commands, False)
+        else:
+            return []
+
+    def _compose_archive_commands(self):
+        source_cmd = self._compose_source_commands(self._compose_base_archive_command, True)[0]
+        compression_cmd = self._compose_compression_command()
+        destination_cmd = self._compose_destination_command()
+        commands = [
+            source_cmd,
+            *([compression_cmd] if compression_cmd is not None else []),
+            *([destination_cmd] if destination_cmd is not None else [])
+        ]
+        return commands
+
+    def _compose_post_archive_commands(self):
+        if hasattr(self.__class__, '_compose_base_post_archive_commands') and \
+            callable(getattr(self.__class__, '_compose_base_post_archive_commands')):
+            return self._compose_source_commands(self._compose_base_post_archive_commands, False)
+        else:
+            return []
+
     def _compose_destination_filename(self):
         if self.config['destination-host']:
             destination_filename = None
@@ -114,16 +152,19 @@ class ArchiveStuff(Action):
                 '{}.tmp'.format(self.config['destination-file'])
         return destination_filename
 
-    def _convert_command_to_string(self, command):
-        if isinstance(command, list):
-            command = ' '.join(command)
-        return command
+    def _do_pre_post_commands(self, commands, dry_run):
+        errors = []
+        if not dry_run:
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, None, self.logger)
+            errors = bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger)
+        else:
+            self.logger.log_info('Skipping {}'.format(' | '.join(map(' '.join, commands))))
+        return errors
 
-    def do(self, dry_run):
-        self._assure_do_function_is_implemented()
+    def _do_archive_commands(self, dry_run):
         self.logger.log_debug(
             "Configuring '{}' action".format(self.__class__.__name__))
-        commands = self._compose_commands()
+        commands = self._compose_archive_commands()
         destination_filename = self._compose_destination_filename()
         self.logger.log_debug(
             "Executing '{}' action".format(self.__class__.__name__))
@@ -149,7 +190,21 @@ class ArchiveStuff(Action):
                     self.logger.log_error(error)
                 errors.extend(rotate_errors)
         else:
-            self.logger.log_info('Dry run, skipping actions')
+            self.logger.log_info('Skipping {} > {}'.format(
+                ' | '.join(map(' '.join, commands)), destination_filename))
+        return errors
+
+    def do(self, dry_run):
+        self._assure_do_function_is_implemented()
+        errors = []
+        for pre_archive_command in self._compose_pre_archive_commands():
+            pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
+            errors.extend(pre_archive_errors)
+        archive_errors = self._do_archive_commands(dry_run)
+        errors.extend(archive_errors)
+        for post_archive_command in self._compose_post_archive_commands():
+            post_archive_errors = self._do_pre_post_commands([post_archive_command], dry_run)
+            errors.extend(post_archive_errors)
         return errors
 
     def _assure_do_function_is_implemented(self):
@@ -157,17 +212,6 @@ class ArchiveStuff(Action):
             raise NotImplementedError(
                 "'{}' action doesn't support 'do' command".format(self.__class__.__name__))
         return
-
-    def _compose_commands(self):
-        source_cmd = self._compose_source_command()
-        compression_cmd = self._compose_compression_command()
-        destination_cmd = self._compose_destination_command()
-        commands = [
-            source_cmd,
-            *([compression_cmd] if compression_cmd is not None else []),
-            *([destination_cmd] if destination_cmd is not None else [])
-        ]
-        return commands
 
 
 class ArchiveFiles(ArchiveStuff):
@@ -183,14 +227,15 @@ class ArchiveFiles(ArchiveStuff):
         'minimalistic-tar': False
     }
 
-    def __init__(self, action_config, logger):
-        super().__init__(action_config, logger,
-                         ArchiveFiles.required_keys, ArchiveFiles.optional_keys)
+    def __init__(self, action_config, logger, extra_required_keys=[], extra_optional_keys={}):
+        required_keys = [*ArchiveFiles.required_keys, *extra_required_keys]
+        optional_keys = {**ArchiveFiles.optional_keys, **extra_optional_keys}
+        super().__init__(action_config, logger, required_keys, optional_keys)
 
     def has_do(self):
         return True
 
-    def _compose_archive_command(self, use_shell):
+    def _compose_base_archive_command(self, use_shell):
         # Compose tar command.
         if use_shell is False:
             directory = '--directory={}'.format(
@@ -216,7 +261,7 @@ class ArchiveFiles(ArchiveStuff):
             '--file=-',
             '.'
         ]
-        return tar_cmd if use_shell is False else ' '.join(tar_cmd)
+        return tar_cmd if use_shell is False else self._convert_command_to_string(tar_cmd)
 
 
 class ArchiveMySQL(ArchiveStuff):
@@ -235,7 +280,7 @@ class ArchiveMySQL(ArchiveStuff):
     def has_do(self):
         return True
 
-    def _compose_archive_command(self, use_shell):
+    def _compose_base_archive_command(self, use_shell):
         # Compose pg_dump command.
         (user, password, database) = bsts_utils.split_user_password_host(
             self.config['source-database'], True, True, True)
@@ -251,7 +296,7 @@ class ArchiveMySQL(ArchiveStuff):
             '--events',
             '{}'.format(database),
         ]
-        return mysqldump_cmd if use_shell is False else ' '.join(mysqldump_cmd)
+        return mysqldump_cmd if use_shell is False else self._convert_command_to_string(mysqldump_cmd)
 
 
 class ArchivePostgreSQL(ArchiveStuff):
@@ -270,7 +315,7 @@ class ArchivePostgreSQL(ArchiveStuff):
     def has_do(self):
         return True
 
-    def _compose_archive_command(self, use_shell):
+    def _compose_base_archive_command(self, use_shell):
         # Compose pg_dump command.
         (user, database) = bsts_utils.split_user_host(
             self.config['source-database'], True, False)
@@ -280,4 +325,4 @@ class ArchivePostgreSQL(ArchiveStuff):
             *(['--username={}'.format(user)] if user is not None else []),
             '--no-password'
         ]
-        return pgdump_cmd if use_shell is False else ' '.join(pgdump_cmd)
+        return pgdump_cmd if use_shell is False else self._convert_command_to_string(pgdump_cmd)
