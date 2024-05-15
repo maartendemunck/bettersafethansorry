@@ -21,7 +21,7 @@ class ArchiveMinecraftServerJavaEdition(ArchiveFiles):
     def _compose_base_pre_archive_commands(self, use_shell):
         rcon_save_off_cmd = ['rcon-cli', 'save-off']
         rcon_save_all_cmd = ['rcon-cli', 'save-all']
-        sleep_cmd = ['sleep', '5']
+        sleep_cmd = ['sleep', '10']
         return [rcon_save_off_cmd if use_shell is False else self._convert_command_to_string(rcon_save_off_cmd),
                 rcon_save_all_cmd if use_shell is False else self._convert_command_to_string(rcon_save_all_cmd),
                 sleep_cmd if use_shell is False else self._convert_command_to_string(sleep_cmd)]
