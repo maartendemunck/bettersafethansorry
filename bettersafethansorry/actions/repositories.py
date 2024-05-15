@@ -26,6 +26,7 @@ class UpdateGitAnnex(Action):
             'annex',
             'sync',
             '--no-resolvemerge',
+            '--no-content',
             *(self.config['remotes'])
         ]
         if self.config['destination-host'] is not None:
