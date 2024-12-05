@@ -16,7 +16,8 @@ class ArchiveStuff(Action):
         'compression': None,
         'destination-host': None,
         'destination-compression': None,
-        'keep': 0
+        'keep': 0,
+        'retry': 0
     }
 
     def __init__(self, action_config, logger, extra_required_keys=[], extra_optional_keys={}):
@@ -196,15 +197,24 @@ class ArchiveStuff(Action):
 
     def do(self, dry_run):
         self._assure_do_function_is_implemented()
-        errors = []
-        for pre_archive_command in self._compose_pre_archive_commands():
-            pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
-            errors.extend(pre_archive_errors)
-        archive_errors = self._do_archive_commands(dry_run)
-        errors.extend(archive_errors)
-        for post_archive_command in self._compose_post_archive_commands():
-            post_archive_errors = self._do_pre_post_commands([post_archive_command], dry_run)
-            errors.extend(post_archive_errors)
+        retry = self.config['keep']
+        successful = False
+        while (not successful) and retry >= 0:
+            errors = []
+            for pre_archive_command in self._compose_pre_archive_commands():
+                pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
+                errors.extend(pre_archive_errors)
+            archive_errors = self._do_archive_commands(dry_run)
+            errors.extend(archive_errors)
+            for post_archive_command in self._compose_post_archive_commands():
+                post_archive_errors = self._do_pre_post_commands([post_archive_command], dry_run)
+                errors.extend(post_archive_errors)
+            retry -= 1
+            if len(errors) > 0:
+                if retry > 0:
+                    self.logger.log_info('Errors encountered during action; retrying action...')
+            else:
+                successful = True
         return errors
 
     def _assure_do_function_is_implemented(self):
