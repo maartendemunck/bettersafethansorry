@@ -197,7 +197,7 @@ class ArchiveStuff(Action):
 
     def do(self, dry_run):
         self._assure_do_function_is_implemented()
-        retry = self.config['keep']
+        retry = self.config['retry']
         successful = False
         while (not successful) and retry >= 0:
             errors = []
@@ -213,6 +213,8 @@ class ArchiveStuff(Action):
             if len(errors) > 0:
                 if retry > 0:
                     self.logger.log_info('Errors encountered during action; retrying action...')
+                else:
+                    self.logger.log_error('Errors encountered during action but no retries left.')
             else:
                 successful = True
         return errors
