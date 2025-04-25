@@ -145,15 +145,16 @@ class ConvertAndMergeVideos(Action):
                     else:
                         # Create a temporary file with the input video files.
                         with tempfile.NamedTemporaryFile(mode='w', delete=False, suffix='.txt') as temp_file:
-                            temp_file.write(b'\n'.join([f"file '{f}'" for f in source_files]).encode())
+                            temp_file.write('\n'.join([f"file '{f}'" for f in source_files]))
                             temp_file_path = temp_file.name
                         # Convert the video files using ffmpeg.
                         convert_cmd = ['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
-                                       '-f', 'concat', '-i', temp_file_path,
+                                       '-safe', '0', '-f', 'concat', '-i', temp_file_path,
                                        '-c:v', 'libx265', '-crf', '26', '-preset', 'slow', '-c:a', 'copy',
                                        '-f', 'mp4',
                                        destination_path_tmp]
                         commands = [convert_cmd]
+                        exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, None, self.logger)
                         # Process the output of the command.
                         cmd_errors = bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger)
                         errors.extend(cmd_errors)
@@ -170,4 +171,4 @@ class ConvertAndMergeVideos(Action):
                             ' + '.join([fname for _, fname in sorted(files)]), destination_filename))
             else:
                 self.logger.log_debug('Skipping {}'.format(destination_filename))
-        return []
+        return errors
