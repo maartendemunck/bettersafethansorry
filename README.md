@@ -2,7 +2,7 @@
 
 Custom backups made easy.
 
-Copyright (C) 2022-2023 Maarten De Munck (<maarten@vijfendertig.be>).
+Copyright (C) 2022-2025 Maarten De Munck (<maarten@vijfendertig.be>).
 
 ## About Better Safe Than Sorry
 
@@ -121,7 +121,8 @@ Backup functions:
 - [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
 - [ ] Verify Git-annex repositories
 - [X] Archive photos and videos to a date- and time based directory structure
-- [ ] Re-encode audio and video
+- [ ] Re-encode audio
+- [X] Re-encode (and merge) video
 - [X] ~~Backup Git repositories~~ (not needed, archive directories instead)
 - [X] ~~Backup Subversion repositories~~ (not needed, archive directories instead)
 
