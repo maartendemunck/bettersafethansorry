@@ -111,7 +111,7 @@ class ConvertAndMergeVideos(Action):
         # Process the grouped video files.
         for (root, video_id), files in sorted(video_groups.items()):
             source_files = [os.path.join(root, fname) for _, fname in sorted(files)]
-            source_stat = Path(source_files[0]).stat()
+            source_stat = Path(source_files[-1]).stat()
             source_isotime = datetime.datetime.fromtimestamp(source_stat.st_mtime).isoformat()
             # Determine common output path.
             relative_path = Path(root).relative_to(self.config['source-directory'])
