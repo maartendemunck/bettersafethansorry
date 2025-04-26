@@ -103,7 +103,10 @@ class ConvertAndMergeVideos(Action):
                 match = source_pattern.match(file)
                 if match:
                     key = (root, match.group("video_id"))
-                    part = match.group("part") or '000'
+                    try:
+                        part = match.group("part") or '000'
+                    except IndexError:
+                        part = '000'
                     video_groups[key].append((part, file))
         # Process the grouped video files.
         for (root, video_id), files in sorted(video_groups.items()):
