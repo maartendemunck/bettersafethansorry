@@ -48,9 +48,11 @@ def main():
         else:
             raise Exception(f'Unkown command "{command}"')
     except Exception as exception:
-        logger.log_error(
-            f'An error occured during command "{command}": "{exception}"')
-        raise
+        # The error should already be logged.
+        # logger.log_error(
+        #     f'An error occured during command "{command}": "{exception}"')
+        # raise
+        return_value = 1
 
     return return_value
 

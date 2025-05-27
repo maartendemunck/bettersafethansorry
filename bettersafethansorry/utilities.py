@@ -193,7 +193,7 @@ def log_subprocess_errors(commands, exit_codes, stdouts, stderrs, logger):
                 "Subprocess '{}' exited successfully".format(command[0]))
         else:
             logger.log_error(
-                "Subprocess '{}' exited with error code {}".format(command[0], exit_code))
+                "Subprocess '{}' exited with error code {}".format(' '.join(command), exit_code))
             if len(stderr) > 0:
                 for line in stderr.splitlines():
                     logger.log_error(line)
