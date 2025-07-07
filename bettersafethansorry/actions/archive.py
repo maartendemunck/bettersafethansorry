@@ -17,7 +17,7 @@ class ArchiveStuff(Action):
         'destination-host': None,
         'destination-compression': None,
         'keep': 0,
-        'retry': 0
+        'retry': 1
     }
 
     def __init__(self, action_config, logger, extra_required_keys=[], extra_optional_keys={}):
