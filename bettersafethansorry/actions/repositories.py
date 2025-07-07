@@ -70,18 +70,22 @@ class UpdateGitAnnex(Action):
             # git annex sync
             command, cwd = self._compose_sync_command()
             commands = [command]
-            exit_codes, stdouts, stderrs = bsts_utils.run_processes(
-                commands, None, self.logger, cwd=cwd)
-            errors.extend(bsts_utils.log_subprocess_errors(
-                commands, exit_codes, stdouts, stderrs, self.logger))
-            if exit_codes[0] == 0:
-                # git annex get
-                command, cwd = self._compose_get_command()
-                commands = [command]
+            try:
                 exit_codes, stdouts, stderrs = bsts_utils.run_processes(
                     commands, None, self.logger, cwd=cwd)
                 errors.extend(bsts_utils.log_subprocess_errors(
                     commands, exit_codes, stdouts, stderrs, self.logger))
+                if exit_codes[0] == 0:
+                    # git annex get
+                    command, cwd = self._compose_get_command()
+                    commands = [command]
+                    exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                        commands, None, self.logger, cwd=cwd)
+                    errors.extend(bsts_utils.log_subprocess_errors(
+                        commands, exit_codes, stdouts, stderrs, self.logger))
+            except FileNotFoundError as e:
+                self.logger.log_error(str(e))
+                errors.append(str(e))
         else:
             self.logger.log_info('Dry run, skipping actions')
         return errors
