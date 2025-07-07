@@ -21,7 +21,7 @@ def main():
         get_configuration(command_line_arguments)
         configure_additional_loggers()
     except Exception as exception:
-        logger.log_error(f'An error occured during setup: "{exception}"')
+        logger.log_error(f'Unkown command "{command}"')
         raise
 
     try:
@@ -46,6 +46,7 @@ def main():
             do_backup(selected_backup, run_only_when_outdated, dry_run)
             return_value = 0
         else:
+            logger.log_error(f'Unkown command "{command}"')
             raise Exception(f'Unkown command "{command}"')
     except Exception as exception:
         # The error should already be logged.
@@ -84,6 +85,7 @@ def get_configuration(command_line_arguments):
             '~/.config/bettersafethansorry/config.yaml')
     configuration = bsts_configuration.load_yaml(config_file, logger)
     if configuration is None:
+        logger.log_error(f'Unable to load configuration file "{config_file}"')
         raise Exception(f'Unable to load configuration file "{config_file}"')
 
 
@@ -136,6 +138,7 @@ def print_status_of_configured_backups():
 def get_postprocessed_backup_configuration(backup):
     global configuration
     if backup is None:
+        logger.log_error('No backup specified')
         raise Exception('No backup specified')
     try:
         backup_configuration = configuration.get_backup_config(backup)
@@ -145,6 +148,7 @@ def get_postprocessed_backup_configuration(backup):
             backup_configuration)
         return backup_configuration
     except KeyError:
+        logger.log_error(f'Backup "{backup}" not found in configuration file')
         raise Exception(f'Backup "{backup}" not found in configuration file')
 
 

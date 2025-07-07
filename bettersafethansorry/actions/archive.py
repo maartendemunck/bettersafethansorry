@@ -199,7 +199,7 @@ class ArchiveStuff(Action):
         self._assure_do_function_is_implemented()
         retry = self.config['retry']
         successful = False
-        while (not successful) and retry >= 0:
+        while (not successful) and retry > 0:
             errors = []
             for pre_archive_command in self._compose_pre_archive_commands():
                 pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
