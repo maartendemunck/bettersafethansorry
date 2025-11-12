@@ -6,33 +6,11 @@ from bettersafethansorry.loggers import Logger
 
 class ApiRegistrar(Logger):
 
-    iso8601_duration_re = re.compile(
-        r'^(?P<sign>[-+]?)'
-        r'P'
-        r'(?:(?P<days>\d+(.\d+)?)D)?'
-        r'(?:T'
-        r'(?:(?P<hours>\d+(.\d+)?)H)?'
-        r'(?:(?P<minutes>\d+(.\d+)?)M)?'
-        r'(?:(?P<seconds>\d+(.\d+)?)S)?'
-        r')?'
-        r'$'
-    )
-
     @staticmethod
-    def __parse_duration(value):
-        match = (
-            ApiRegistrar.iso8601_duration_re.match(value)
-        )
-        if match:
-            kw = match.groupdict()
-            days = datetime.timedelta(float(kw.pop('days', 0) or 0))
-            sign = -1 if kw.pop('sign', '+') == '-' else 1
-            if kw.get('microseconds'):
-                kw['microseconds'] = kw['microseconds'].ljust(6, '0')
-            if kw.get('seconds') and kw.get('microseconds') and kw['seconds'].startswith('-'):
-                kw['microseconds'] = '-' + kw['microseconds']
-            kw = {k: float(v) for k, v in kw.items() if v is not None}
-            return days + sign * datetime.timedelta(**kw)
+    def _parse_seconds(value):
+        if value in (None, "null"):
+            return None
+        return datetime.timedelta(seconds=float(value))
 
     def __init__(self, config, logger) -> None:
         try:
@@ -40,6 +18,7 @@ class ApiRegistrar(Logger):
             # self.password = config['password']
             self.info_url = config['info-url']
             self.update_url = config['update-url']
+            self.api_token = config.get('api-token', None)
         except KeyError:
             logger.log_error('Error in API registrar config')
             raise ValueError('Error in API registrar config')
@@ -50,21 +29,48 @@ class ApiRegistrar(Logger):
 
     def finish_backup(self, timestamp, id, errors):
         name = self.backups.pop(id, None)
-        if name is not None and len(errors) == 0:
-            request = {'type': 'backup',
-                       'timestamp': timestamp.isoformat()}
-            requests.post(self.update_url.format(name=name), json=request)
+        if name is None or errors:
+            return
+
+        if timestamp.tzinfo is None:
+            timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
+
+        payload = {
+            "type": "backup",
+            "timestamp": timestamp.isoformat()
+        }
+        headers = {
+            "X-Backup-Token": self.api_token} if hasattr(self, 'api_token') else {}
+        response = requests.post(
+            self.update_url.format(name=name),
+            json=payload,
+            headers=headers,
+            timeout=10)
+        response.raise_for_status()
 
     def is_backup_outdated(self, timestamp, name):
-        response = requests.get(self.info_url.format(name=name))
+        headers = {
+            "X-Backup-Token": self.api_token} if hasattr(self, 'api_token') else {}
+        response = requests.get(
+            self.info_url.format(name=name),
+            headers=headers,
+            timeout=10)
         if response.status_code != 200:
             return None
-        try:
-            info = response.json()
-            last = datetime.datetime.fromisoformat(
-                info['backup']['last'].replace('Z', '+00:00'))
-            interval = ApiRegistrar.__parse_duration(
-                info['backup']['interval']['preferred'])
-            return (timestamp - last > interval)
-        except:
+
+        info = response.json()
+        backup = info.get("backup") or {}
+        last_raw = backup.get("last")
+        if not last_raw:
             return None
+        last = datetime.datetime.fromisoformat(last_raw)
+
+        interval = backup.get("interval") or {}
+        preferred = interval.get("preferred")
+        if not preferred:
+            return None
+        preferred_interval = ApiRegistrar._parse_seconds(preferred)
+        if interval is None:
+            return None
+
+        return timestamp - last > preferred_interval
