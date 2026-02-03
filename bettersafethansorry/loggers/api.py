@@ -23,12 +23,13 @@ class ApiRegistrar(Logger):
             logger.log_error('Error in API registrar config')
             raise ValueError('Error in API registrar config')
         self.backups = {}
+        self.verifications = {}
 
     def start_backup(self, timestamp, id, name, description):
         self.backups[id] = name
 
-    def finish_backup(self, timestamp, id, errors):
-        name = self.backups.pop(id, None)
+    def _register_operation(self, timestamp, name, operation_type, errors):
+        """Helper method to register backup or verification operations."""
         if name is None or errors:
             return
 
@@ -36,7 +37,7 @@ class ApiRegistrar(Logger):
             timestamp = timestamp.replace(tzinfo=datetime.timezone.utc)
 
         payload = {
-            "type": "backup",
+            "type": operation_type,
             "timestamp": timestamp.isoformat()
         }
         headers = {
@@ -47,6 +48,17 @@ class ApiRegistrar(Logger):
             headers=headers,
             timeout=10)
         response.raise_for_status()
+
+    def finish_backup(self, timestamp, id, errors):
+        name = self.backups.pop(id, None)
+        self._register_operation(timestamp, name, "backup", errors)
+
+    def start_verify(self, timestamp, id, name, description):
+        self.verifications[id] = name
+
+    def finish_verify(self, timestamp, id, errors):
+        name = self.verifications.pop(id, None)
+        self._register_operation(timestamp, name, "verify", errors)
 
     def is_backup_outdated(self, timestamp, name):
         headers = {

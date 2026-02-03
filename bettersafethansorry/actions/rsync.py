@@ -79,5 +79,7 @@ class RsyncFiles(Action):
             errors.extend(bsts_utils.log_subprocess_errors(
                 commands, exit_codes, stdouts, stderrs, self.logger))
         else:
-            self.logger.log_info('Dry run, skipping actions')
+            # Show command that would be executed
+            command = self._compose_command()
+            self.logger.log_info('Would run: {}'.format(' '.join(command)))
         return errors

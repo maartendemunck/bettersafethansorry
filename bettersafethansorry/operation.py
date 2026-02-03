@@ -149,3 +149,49 @@ def run_all_or_nothing_actions(action_configs, dry_run, logger):
             # Don't add rollback errors to main error list to avoid double-counting
 
     return errors
+
+
+def run_verify(backup_name, backup_config, dry_run, logger):
+    """Verify a backup configuration by running verify() on all actions that support it.
+
+    Args:
+        backup_name: Name of the backup configuration
+        backup_config: Configuration dictionary containing actions
+        dry_run: If True, show what would be verified without executing
+        logger: Logger instance for logging messages
+
+    Returns:
+        list: List of error messages (empty if no errors)
+    """
+    description = backup_config.pop('description', '')
+    id = uuid.uuid4()
+    logger.start_verify(id, backup_name, description)
+
+    errors = []
+
+    # Process all actions that support verification
+    for action_config in backup_config['actions']:
+        action_description = action_config.pop('description', '')
+        action_id = uuid.uuid4()
+
+        try:
+            action_class = globals()[action_config.pop('action')]
+        except KeyError as error:
+            raise RuntimeError("Unknown action {}".format(error)) from error
+
+        action_instance = action_class(action_config, logger)
+
+        # Only verify actions that implement verification
+        if action_instance.has_verify():
+            logger.start_action(action_id, action_description)
+            action_errors = action_instance.verify(dry_run)
+            errors.extend(action_errors)
+            logger.finish_action(action_id, action_errors)
+        else:
+            # Skip actions that don't support verification
+            logger.log_debug(
+                "Skipping verification for action '{}' (not implemented)".format(
+                    action_description) if action_description else "Skipping verification for action (not implemented)")
+
+    logger.finish_verify(id, errors)
+    return errors

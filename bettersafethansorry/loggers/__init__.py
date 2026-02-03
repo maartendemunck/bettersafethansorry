@@ -20,3 +20,9 @@ class Logger:
 
     def is_backup_outdated(self, timestamp, name):
         return None
+
+    def start_verify(self, timestamp, id, name, description):
+        pass
+
+    def finish_verify(self, timestamp, id, errors):
+        pass

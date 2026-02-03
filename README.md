@@ -91,7 +91,16 @@ The configuration file defines three backups:
 
 Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
 
-`bsts list` lists the available backups and `bsts do wormwood-image` and `bsts do wormwood-maartenathome` run the individual backups.
+`bsts list` lists the available backups. `bsts status` lists all backups and shows which backups are outdated.
+
+`bsts do wormwood-image` and `bsts do wormwood-maartenathome` run the individual backups.
+
+`bsts verify wormwood-image` and `bsts verify wormwood-maartenathome` verify the backups. This functionality is currently only supported for git-annex archives, which it will check for:
+- Missing or corrupted files
+- Checksum mismatches
+- Repository consistency
+
+Both backups (do) and verification (verify) return exit code 0 on success or 1 if errors are found.
 
 ## Usage
 
@@ -101,8 +110,8 @@ Usage: `bsts [-h] [-c CONFIG] [-n] command [backup]`
 
 Positional arguments:
 
-- `command`: `list`, `status`, `show` or `do`
-- `backup`: backup to show or perform (as defined in the configuration file)
+- `command`: `list`, `status`, `show`, `do` or `verify`
+- `backup`: backup to show, perform or verify (as defined in the configuration file)
 
 Options:
 
@@ -122,7 +131,7 @@ Backup functions:
 - [X] Backup PostgreSQL databases, both local and remote, both native and in a docker container
 - [X] Backup MySQL and MariaDB databases, both local and remote, both native and in a docker container
 - [X] Backup Git-annex repositories (synchronize previously initialized git-annex repositories only)
-- [ ] Verify Git-annex repositories
+- [X] Verify Git-annex repositories
 - [X] Archive photos and videos to a date- and time based directory structure
 - [ ] Re-encode audio
 - [X] Re-encode (and merge) video

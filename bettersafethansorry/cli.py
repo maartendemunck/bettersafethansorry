@@ -43,8 +43,11 @@ def main():
             selected_backup = command_line_arguments.backup
             run_only_when_outdated = True if command_line_arguments.auto else False
             dry_run = True if command_line_arguments.dry_run else False
-            do_backup(selected_backup, run_only_when_outdated, dry_run)
-            return_value = 0
+            return_value = do_backup(selected_backup, run_only_when_outdated, dry_run)
+        elif command == 'verify':
+            selected_backup = command_line_arguments.backup
+            dry_run = True if command_line_arguments.dry_run else False
+            return_value = verify_backup(selected_backup, dry_run)
         else:
             logger.log_error(f'Unkown command "{command}"')
             raise Exception(f'Unkown command "{command}"')
@@ -62,9 +65,9 @@ def parse_command_line_arguments():
     parser = argparse.ArgumentParser(
         description='Better Safe Than Sorry. Custom backups made easy.')
     parser.add_argument('command',
-                        help="Command ('list', 'status', 'show' or 'do')")
+                        help="Command ('list', 'status', 'show', 'do' or 'verify')")
     parser.add_argument('backup', nargs='?',
-                        help="Select backup (for 'show' or 'do')")
+                        help="Select backup (for 'show', 'do' or 'verify')")
     parser.add_argument('-c', '--config',
                         help='Select config file')
     parser.add_argument('-a', '--auto',
@@ -163,7 +166,19 @@ def do_backup(backup, run_only_when_outdated, dry_run):
         errors = bsts_operation.run_backup(
             backup, get_postprocessed_backup_configuration(backup), dry_run, logger)
         if errors is not None and len(errors) > 0:
-            raise Exception(f'Error(s) encountered during backup: "{errors}"')
+            logger.log_error(f'Backup failed with {len(errors)} error(s)')
+            return 1
+    return 0
+
+
+def verify_backup(backup, dry_run):
+    global configuration, logger
+    errors = bsts_operation.run_verify(
+        backup, get_postprocessed_backup_configuration(backup), dry_run, logger)
+    if errors is not None and len(errors) > 0:
+        logger.log_error(f'Verification failed with {len(errors)} error(s)')
+        return 1
+    return 0
 
 
 if __name__ == '__main__':

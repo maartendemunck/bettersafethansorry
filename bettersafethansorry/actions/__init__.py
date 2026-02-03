@@ -60,3 +60,9 @@ class Action:
 
     def check(self):
         return ['Not implemented']
+
+    def has_verify(self):
+        return False
+
+    def verify(self, dry_run):
+        return ['Not implemented']

@@ -69,7 +69,7 @@ class CopyPhotosVideos(Action):
                                  (source_stat.st_atime, source_stat.st_mtime))
                     else:
                         self.logger.log_info(
-                            'Dry run, skipping copying {} to {} (based on {})'.format(
+                            'Would copy: {} -> {} (based on {})'.format(
                                 filename, destination_dirpath, timestamp_source))
         return []
 
@@ -169,9 +169,20 @@ class ConvertAndMergeVideos(Action):
                         # Remove the temporary file.
                         bsts_utils.remove_file(None, temp_file_path)
                 else:
-                    self.logger.log_info(
-                        'Dry run, skipping converting {} to {}'.format(
-                            ' + '.join([fname for _, fname in sorted(files)]), destination_filename))
+                    # Show what would be converted
+                    if len(source_files) == 1:
+                        convert_cmd = ['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+                                       '-i', source_files[0],
+                                       '-c:v', 'libx265', '-crf', '26', '-preset', 'slow', '-c:a', 'copy',
+                                       '-f', 'mp4', '-metadata', f'creation_time="{source_isotime}',
+                                       destination_path_tmp]
+                    else:
+                        convert_cmd = ['ffmpeg', '-y', '-hide_banner', '-loglevel', 'error',
+                                       '-safe', '0', '-f', 'concat', '-i', '<temp_file>',
+                                       '-c:v', 'libx265', '-crf', '26', '-preset', 'slow', '-c:a', 'copy',
+                                       '-f', 'mp4',
+                                       destination_path_tmp]
+                    self.logger.log_info('Would run: {}'.format(' '.join(str(arg) for arg in convert_cmd)))
             else:
                 self.logger.log_debug('Skipping {}'.format(destination_filename))
         return errors

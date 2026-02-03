@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "bettersafethansorry"
-version = "0.2.0"
+version = "0.3.0"
 description = "Configurable backup application"
 authors = ["Maarten De Munck <maarten@vijfendertig.be>"]
 maintainers = ["Maarten De Munck <maarten@vijfendertig.be>"]

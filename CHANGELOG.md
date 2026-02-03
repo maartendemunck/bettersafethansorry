@@ -5,6 +5,72 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.0] - 2026-02-03
+
+### Added
+
+- **Verify functionality** for backup validation
+  - New `verify` CLI command to verify backup integrity
+  - New `has_verify()` and `verify(dry_run)` methods in Action base class
+  - Implemented verification for UpdateGitAnnex action using `git annex fsck --quiet --numcopies=1`
+  - Full logger support with `start_verify()` and `finish_verify()` methods:
+    - Added to Logger base class interface
+    - Implemented in MasterLogger to broadcast to all loggers
+    - Implemented in PythonLogger with appropriate log messages
+    - Implemented in ApiRegistrar to register verifications with type='verify'
+  - New `run_verify()` function in operation.py that processes all actions supporting verification
+  - Verification skips actions that don't implement `has_verify()` (with debug logging)
+  - Supports `--dry-run` flag to preview verification operations
+
+- **Usage examples and documentation**
+  - Added verification usage examples to README showing basic and dry-run usage
+  - Documented exit codes (0 for success, 1 for failure) for both backup and verify commands
+  - Documented what verification checks (missing files, checksums, repository consistency)
+
+### Changed
+
+- **Improved exit codes**
+  - Both `do` and `verify` commands now return proper exit codes:
+    - Exit code 0: Operation successful (no errors)
+    - Exit code 1: Operation failed (errors encountered)
+  - Changed from raising exceptions to returning exit codes for better scriptability
+  - Added error count logging: "Backup failed with N error(s)" / "Verification failed with N error(s)"
+
+- **Enhanced dry-run output across all action types**
+  - **UpdateGitAnnex**: Shows exact commands with working directory
+    - `Would run: git annex sync --no-resolvemerge --no-content`
+    - `Would run: git annex get --auto`
+    - `Would run: git annex fsck --quiet --numcopies=1`
+  - **RsyncFiles**: Shows complete rsync command with all flags
+    - `Would run: rsync --archive --timeout=120 --delete ...`
+  - **ArchiveStuff** (and all archive actions): Shows detailed operation information
+    - `Would run: tar ... | bzip2 > file.tar.bz2.tmp`
+    - `Would rotate: file.tar.bz2.tmp -> file.tar.bz2 (keeping 3 old versions)`
+    - `Would remove: file.tar.bz2.tmp`
+  - **CopyPhotosVideos**: Shows copy operations with timestamps
+    - `Would copy: photo.jpg -> /path/to/2024-01-15 (based on EXIF data)`
+  - **ConvertAndMergeVideos**: Shows ffmpeg command with all parameters
+    - `Would run: ffmpeg -y -hide_banner -loglevel error -i input.mp4 ...`
+  - Changed from generic "Skipping..." messages to specific "Would run:" / "Would copy:" / "Would rotate:" messages
+
+- **Refactored SSH wrapper logic in UpdateGitAnnex**
+  - Extracted duplicated SSH command wrapping into `_wrap_command_with_ssh()` helper method
+  - Now used by `_compose_sync_command()`, `_compose_get_command()`, and new `_compose_fsck_command()`
+  - Eliminates code duplication and improves maintainability
+
+- **ApiRegistrar logger improvements**
+  - Refactored `finish_backup()` to use new `_register_operation()` helper method
+  - Reduces duplication between backup and verification registration
+  - Tracks verifications separately in `self.verifications` dictionary
+
+### Technical Details
+
+- Verify operations follow the same logging pattern as backup operations
+- Actions can independently implement verification without affecting other functionality
+- The verify command processes actions sequentially (no all-or-nothing logic needed)
+- CLI help text updated to include 'verify' command
+- Dry-run mode now provides actionable information for testing and debugging configurations
+
 ## [0.2.0] - 2026-02-03
 
 ### Added

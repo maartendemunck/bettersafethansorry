@@ -62,6 +62,12 @@ class MasterLogger:
     def finish_backup(self, id, errors):
         self._call_all_loggers('finish_backup', id, errors)
 
+    def start_verify(self, id, name, description):
+        self._call_all_loggers('start_verify', id, name, description)
+
+    def finish_verify(self, id, errors):
+        self._call_all_loggers('finish_verify', id, errors)
+
     def start_action(self, id, description):
         self._call_all_loggers('start_action', id, description)
 
@@ -111,6 +117,19 @@ class PythonLogger(Logger):
             self.__log_info(timestamp, 'Backup completed without errors')
         else:
             self.__log_info(timestamp, 'Error(s) encountered during backup')
+
+    def start_verify(self, timestamp, id, name, description):
+        if description is not None and len(description) > 0:
+            self.__log_info(
+                timestamp, "Starting verification '{}'".format(description))
+        else:
+            self.__log_info(timestamp, 'Starting verification')
+
+    def finish_verify(self, timestamp, id, errors):
+        if errors is None or len(errors) == 0:
+            self.__log_info(timestamp, 'Verification completed without errors')
+        else:
+            self.__log_info(timestamp, 'Error(s) encountered during verification')
 
     def start_action(self, timestamp, id, description):
         if description is not None and len(description) > 0:

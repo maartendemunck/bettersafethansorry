@@ -159,7 +159,8 @@ class ArchiveStuff(Action):
             exit_codes, stdouts, stderrs = bsts_utils.run_processes(commands, None, self.logger)
             errors = bsts_utils.log_subprocess_errors(commands, exit_codes, stdouts, stderrs, self.logger)
         else:
-            self.logger.log_info('Skipping {}'.format(' | '.join(map(' '.join, commands))))
+            # Show command that would be executed
+            self.logger.log_info('Would run: {}'.format(' | '.join(map(' '.join, commands))))
         return errors
 
     def _do_archive_prepare(self, dry_run):
@@ -177,8 +178,13 @@ class ArchiveStuff(Action):
             errors.extend(bsts_utils.log_subprocess_errors(
                 commands, exit_codes, stdouts, stderrs, self.logger))
         else:
-            self.logger.log_info('Skipping {} > {}'.format(
-                ' | '.join(map(' '.join, commands)), destination_filename))
+            # Show command that would be executed
+            if destination_filename:
+                self.logger.log_info('Would run: {} > {}'.format(
+                    ' | '.join(map(' '.join, commands)), destination_filename))
+            else:
+                self.logger.log_info('Would run: {}'.format(
+                    ' | '.join(map(' '.join, commands))))
         return errors
 
     def _do_archive_commit(self, dry_run):
@@ -197,7 +203,11 @@ class ArchiveStuff(Action):
                 self.logger.log_error(error)
             errors.extend(rotate_errors)
         else:
-            self.logger.log_info('Skipping commit (dry run)')
+            # Show what would be committed
+            self.logger.log_info('Would rotate: {}.tmp -> {} (keeping {} old versions)'.format(
+                self.config['destination-file'],
+                self.config['destination-file'],
+                self.config['keep']))
         return errors
 
     def _do_archive_rollback(self, dry_run):
@@ -210,7 +220,9 @@ class ArchiveStuff(Action):
                 self.config['destination-host'],
                 '{}.tmp'.format(self.config['destination-file']))
         else:
-            self.logger.log_info('Skipping rollback (dry run)')
+            # Show what would be rolled back
+            self.logger.log_info('Would remove: {}.tmp'.format(
+                self.config['destination-file']))
         return errors
 
     def _do_archive_commands(self, dry_run):
@@ -242,8 +254,13 @@ class ArchiveStuff(Action):
                     self.logger.log_error(error)
                 errors.extend(rotate_errors)
         else:
-            self.logger.log_info('Skipping {} > {}'.format(
-                ' | '.join(map(' '.join, commands)), destination_filename))
+            # Show command that would be executed
+            if destination_filename:
+                self.logger.log_info('Would run: {} > {}'.format(
+                    ' | '.join(map(' '.join, commands)), destination_filename))
+            else:
+                self.logger.log_info('Would run: {}'.format(
+                    ' | '.join(map(' '.join, commands))))
         return errors
 
     def do(self, dry_run):
