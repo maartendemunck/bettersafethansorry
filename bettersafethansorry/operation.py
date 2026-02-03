@@ -12,9 +12,27 @@ def run_backup(backup_name, backup_config, dry_run, logger):
     logger.start_backup(id, backup_name, description)
 
     errors = []
+
+    # Separate actions into all-or-nothing and regular groups
+    all_or_nothing_actions = []
+    regular_actions = []
+
     for action_config in backup_config['actions']:
+        if action_config.get('all-or-nothing', False):
+            all_or_nothing_actions.append(action_config)
+        else:
+            regular_actions.append(action_config)
+
+    # Process regular actions (call do() directly)
+    for action_config in regular_actions:
         action_errors = run_backup_action(action_config, dry_run, logger)
         errors.extend(action_errors)
+
+    # Process all-or-nothing actions (prepare/commit/rollback)
+    if len(all_or_nothing_actions) > 0:
+        aon_errors = run_all_or_nothing_actions(
+            all_or_nothing_actions, dry_run, logger)
+        errors.extend(aon_errors)
 
     logger.finish_backup(id, errors)
     return errors
@@ -34,4 +52,100 @@ def run_backup_action(action_config, dry_run, logger):
     errors = action_instance.do(dry_run)
 
     logger.finish_action(id, errors)
+    return errors
+
+
+def run_all_or_nothing_actions(action_configs, dry_run, logger):
+    """Execute a group of actions with all-or-nothing semantics.
+
+    All actions are prepared first. If all preparations succeed, all are committed.
+    If any preparation fails, all are rolled back.
+    """
+    errors = []
+    action_data = []  # Store (action_instance, description) tuples
+
+    # Phase 1: Prepare all actions
+    logger.log_info('Starting prepare phase of all-or-nothing action group')
+    prepare_errors = []
+    prepare_failed = False
+
+    for action_config in action_configs:
+        description = action_config.pop('description', '')
+
+        # If a previous action failed, skip remaining preparations
+        if prepare_failed:
+            logger.log_info("Skipping action '{}' (previous action failed)".format(
+                description) if description else "Skipping action (previous action failed)")
+            continue
+
+        # Custom logging for prepare phase
+        logger.log_info("Preparing action '{}'".format(
+            description) if description else "Preparing action")
+
+        try:
+            action_class = globals()[action_config.pop('action')]
+        except KeyError as error:
+            raise RuntimeError("Unknown action {}".format(error)) from error
+
+        action_instance = action_class(action_config, logger)
+
+        # Check if action supports all-or-nothing
+        if not (action_instance.has_prepare() and action_instance.has_commit() and action_instance.has_rollback()):
+            error_msg = "'{}' action does not support 'all-or-nothing' mode".format(
+                action_instance.__class__.__name__)
+            logger.log_error(error_msg)
+            prepare_errors.append(error_msg)
+            prepare_failed = True
+            continue
+
+        # Execute prepare phase
+        action_prepare_errors = action_instance.prepare(dry_run)
+        prepare_errors.extend(action_prepare_errors)
+
+        # Always add to action_data so it gets rolled back if needed
+        action_data.append((action_instance, description))
+
+        # Log completion of prepare phase
+        if len(action_prepare_errors) == 0:
+            logger.log_info('Action prepared without errors')
+        else:
+            logger.log_error('Error(s) encountered during action preparation')
+            prepare_failed = True
+
+    # Phase 2: Commit or rollback based on prepare results
+    if len(prepare_errors) == 0:
+        # All preparations succeeded - commit all
+        logger.log_info('All preparations succeeded, committing all actions')
+        for action_instance, description in action_data:
+            # Custom logging for commit phase
+            logger.log_info("Committing action '{}'".format(
+                description) if description else "Committing action")
+
+            commit_errors = action_instance.commit(dry_run)
+            errors.extend(commit_errors)
+
+            # Log completion of commit phase
+            if len(commit_errors) == 0:
+                logger.log_info('Action committed without errors')
+            else:
+                logger.log_error('Error(s) encountered during action commit')
+    else:
+        # At least one preparation failed - rollback all
+        logger.log_error(
+            'One or more preparations failed, rolling back all actions')
+        errors.extend(prepare_errors)
+        for action_instance, description in action_data:
+            # Custom logging for rollback phase
+            logger.log_info("Rolling back action '{}'".format(
+                description) if description else "Rolling back action")
+
+            rollback_errors = action_instance.rollback(dry_run)
+
+            # Log completion of rollback phase
+            if len(rollback_errors) == 0:
+                logger.log_info('Action rolled back without errors')
+            else:
+                logger.log_error('Error(s) encountered during action rollback')
+            # Don't add rollback errors to main error list to avoid double-counting
+
     return errors

@@ -1,7 +1,9 @@
 class Action:
 
     required_keys = []
-    optional_keys = {}
+    optional_keys = {
+        'all-or-nothing': False
+    }
 
     def __init__(self, action_config, logger, extra_required_keys=[], extra_optional_keys={}):
         self.logger = logger
@@ -33,6 +35,24 @@ class Action:
         return False
 
     def do(self):
+        return ['Not implemented']
+
+    def has_prepare(self):
+        return False
+
+    def prepare(self, dry_run):
+        return ['Not implemented']
+
+    def has_commit(self):
+        return False
+
+    def commit(self, dry_run):
+        return ['Not implemented']
+
+    def has_rollback(self):
+        return False
+
+    def rollback(self, dry_run):
         return ['Not implemented']
 
     def has_check(self):

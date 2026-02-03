@@ -29,6 +29,7 @@ backups:
     actions:
       - description: Backup / filesystem
         action: ArchiveFiles
+        all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /
@@ -40,6 +41,7 @@ backups:
           - ./sys
       - description: Backup /boot filesystem
         action: ArchiveFiles
+        all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /boot/
@@ -49,6 +51,7 @@ backups:
         keep: 3
       - description: Backup /boot/efi filesystem
         action: ArchiveFiles
+        all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /boot/efi/
@@ -83,7 +86,7 @@ loggers:
 
 The configuration file defines three backups:
 
-- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I send the backups as (uncompressed) tar files to my desktop PC and bzip2 them there.
+- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I send the backups as (uncompressed) tar files to my desktop PC and bzip2 them there. The `all-or-nothing: true` flag ensures that all three filesystem backups are consistent: all backups are first prepared (creating temporary `.tmp` files), and only if all preparations succeed are the backups committed (rotating old backups and moving `.tmp` files to their final names). If any preparation fails, all temporary files are rolled back, ensuring you never have a mix of old and new backups from different points in time.
 - `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off). Again, compression is done on the system running the backup.
 
 Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
@@ -139,6 +142,7 @@ Backup operation:
 - [X] Store timestamps
 - [X] Run outdated backups automatically
 - [X] Warn for outdated backups
+- [X] All-or-nothing transaction support for consistent multi-action backups
 - [ ] Error handling
 - [ ] Continuous logging (instead of buffering until the subprocesses finish)
 - [ ] Colors for CLI

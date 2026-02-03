@@ -162,6 +162,57 @@ class ArchiveStuff(Action):
             self.logger.log_info('Skipping {}'.format(' | '.join(map(' '.join, commands))))
         return errors
 
+    def _do_archive_prepare(self, dry_run):
+        """Execute archive commands to create .tmp file without rotating backups."""
+        self.logger.log_debug(
+            "Configuring '{}' action".format(self.__class__.__name__))
+        commands = self._compose_archive_commands()
+        destination_filename = self._compose_destination_filename()
+        self.logger.log_debug(
+            "Executing '{}' action (prepare phase)".format(self.__class__.__name__))
+        errors = []
+        if not dry_run:
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                commands, destination_filename, self.logger)
+            errors.extend(bsts_utils.log_subprocess_errors(
+                commands, exit_codes, stdouts, stderrs, self.logger))
+        else:
+            self.logger.log_info('Skipping {} > {}'.format(
+                ' | '.join(map(' '.join, commands)), destination_filename))
+        return errors
+
+    def _do_archive_commit(self, dry_run):
+        """Rotate backup files after successful prepare."""
+        self.logger.log_debug(
+            "Committing '{}' action".format(self.__class__.__name__))
+        errors = []
+        if not dry_run:
+            rotate_errors = bsts_utils.rotate_file(
+                self.config['destination-host'],
+                self.config['destination-file'],
+                '.tmp',
+                self.config['keep'],
+                self.logger)
+            for error in rotate_errors:
+                self.logger.log_error(error)
+            errors.extend(rotate_errors)
+        else:
+            self.logger.log_info('Skipping commit (dry run)')
+        return errors
+
+    def _do_archive_rollback(self, dry_run):
+        """Remove temporary file after failed prepare."""
+        self.logger.log_debug(
+            "Rolling back '{}' action".format(self.__class__.__name__))
+        errors = []
+        if not dry_run:
+            bsts_utils.remove_file(
+                self.config['destination-host'],
+                '{}.tmp'.format(self.config['destination-file']))
+        else:
+            self.logger.log_info('Skipping rollback (dry run)')
+        return errors
+
     def _do_archive_commands(self, dry_run):
         self.logger.log_debug(
             "Configuring '{}' action".format(self.__class__.__name__))
@@ -201,14 +252,18 @@ class ArchiveStuff(Action):
         successful = False
         while (not successful) and retry > 0:
             errors = []
-            for pre_archive_command in self._compose_pre_archive_commands():
-                pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
-                errors.extend(pre_archive_errors)
-            archive_errors = self._do_archive_commands(dry_run)
-            errors.extend(archive_errors)
-            for post_archive_command in self._compose_post_archive_commands():
-                post_archive_errors = self._do_pre_post_commands([post_archive_command], dry_run)
-                errors.extend(post_archive_errors)
+            # Prepare phase
+            prepare_errors = self.prepare(dry_run)
+            errors.extend(prepare_errors)
+
+            # Commit or rollback based on success
+            if len(prepare_errors) == 0:
+                commit_errors = self.commit(dry_run)
+                errors.extend(commit_errors)
+            else:
+                rollback_errors = self.rollback(dry_run)
+                errors.extend(rollback_errors)
+
             retry -= 1
             if len(errors) > 0:
                 if retry > 0:
@@ -224,6 +279,42 @@ class ArchiveStuff(Action):
             raise NotImplementedError(
                 "'{}' action doesn't support 'do' command".format(self.__class__.__name__))
         return
+
+    def has_prepare(self):
+        return True
+
+    def prepare(self, dry_run):
+        """Prepare phase: run pre-commands and create archive .tmp file."""
+        errors = []
+        for pre_archive_command in self._compose_pre_archive_commands():
+            pre_archive_errors = self._do_pre_post_commands([pre_archive_command], dry_run)
+            errors.extend(pre_archive_errors)
+        archive_errors = self._do_archive_prepare(dry_run)
+        errors.extend(archive_errors)
+        return errors
+
+    def has_commit(self):
+        return True
+
+    def commit(self, dry_run):
+        """Commit phase: rotate backup files and run post-commands."""
+        errors = []
+        commit_errors = self._do_archive_commit(dry_run)
+        errors.extend(commit_errors)
+        for post_archive_command in self._compose_post_archive_commands():
+            post_archive_errors = self._do_pre_post_commands([post_archive_command], dry_run)
+            errors.extend(post_archive_errors)
+        return errors
+
+    def has_rollback(self):
+        return True
+
+    def rollback(self, dry_run):
+        """Rollback phase: remove .tmp file."""
+        errors = []
+        rollback_errors = self._do_archive_rollback(dry_run)
+        errors.extend(rollback_errors)
+        return errors
 
 
 class ArchiveFiles(ArchiveStuff):
