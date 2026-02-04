@@ -5,6 +5,19 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2026-02-04
+
+### Added
+
+- **Verification support for archive actions**
+  - ArchiveFiles: Verifies backup file exists and validates tar archive integrity via decompression
+  - ArchiveMySQL: Verifies backup file exists and validates compression integrity
+  - ArchivePostgreSQL: Verifies backup file exists and validates compression integrity
+  - Supports local and remote (SSH) backup destinations
+  - Automatically detects compression type (gzip, bzip2, xz) from config
+  - Each subclass implements `_compose_base_verify_command()` for format-specific verification
+  - Base class handles SSH wrapping and file existence checks
+
 ## [0.3.0] - 2026-02-03
 
 ### Added

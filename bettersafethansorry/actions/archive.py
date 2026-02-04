@@ -333,6 +333,109 @@ class ArchiveStuff(Action):
         errors.extend(rollback_errors)
         return errors
 
+    def has_verify(self):
+        return True
+
+    def _get_decompression_command(self):
+        """Get the decompression command based on config.
+
+        Returns the decompression command (e.g., 'gunzip -c', 'bunzip2 -c')
+        or None if no compression is used.
+        """
+        # Use the same logic as backup to determine compression
+        compression = None
+        if self.config['destination-compression']:
+            compression = self.config['destination-compression']
+        elif self.config['compression']:
+            compression = self.config['compression']
+        elif self.config['source-compression']:
+            compression = self.config['source-compression']
+
+        if compression is None:
+            return None
+
+        # Map compression commands to decompression commands
+        compression_lower = compression.lower()
+        if 'gzip' in compression_lower or compression_lower.startswith('gz'):
+            return 'gunzip -c'
+        elif 'bzip2' in compression_lower or 'bz2' in compression_lower:
+            return 'bunzip2 -c'
+        elif 'xz' in compression_lower:
+            return 'xz -dc'
+        else:
+            # Unknown compression, try to infer from the command
+            return None
+
+    def _compose_file_exists_command(self):
+        """Compose a command to check if backup file exists."""
+        destination_file = self.config['destination-file']
+        return 'test -f {}'.format(destination_file)
+
+    def _compose_verify_commands(self):
+        """Compose verify commands, wrapping with SSH if needed.
+
+        Returns list of command lists suitable for run_processes.
+        """
+        destination_host = self.config['destination-host']
+
+        # Get the base verify command from subclass
+        verify_cmd = self._compose_base_verify_command()
+
+        if destination_host:
+            return [['ssh', destination_host, verify_cmd]]
+        else:
+            return [['sh', '-c', verify_cmd]]
+
+    def verify(self, dry_run):
+        """Verify backup integrity by checking file exists and validating compression."""
+        self.logger.log_debug(
+            "Verifying '{}' action".format(self.__class__.__name__))
+        errors = []
+        destination_file = self.config['destination-file']
+        destination_host = self.config['destination-host']
+        location = '{}:{}'.format(destination_host, destination_file) if destination_host else destination_file
+
+        if not dry_run:
+            # Step 1: Check if file exists
+            exists_cmd = self._compose_file_exists_command()
+            if destination_host:
+                exists_command = ['ssh', destination_host, exists_cmd]
+            else:
+                exists_command = ['sh', '-c', exists_cmd]
+
+            exit_codes, _, _ = bsts_utils.run_processes(
+                [exists_command], None, self.logger)
+            if exit_codes[0] != 0:
+                error_msg = 'Backup file does not exist: {}'.format(location)
+                self.logger.log_error(error_msg)
+                errors.append(error_msg)
+                return errors
+
+            self.logger.log_info('Backup file exists: {}'.format(location))
+
+            # Step 2: Verify archive integrity
+            verify_commands = self._compose_verify_commands()
+            self.logger.log_info('Verifying integrity of {}'.format(location))
+            exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                verify_commands, None, self.logger)
+            errors.extend(bsts_utils.log_subprocess_errors(
+                verify_commands, exit_codes, stdouts, stderrs, self.logger))
+
+            if len(errors) == 0:
+                self.logger.log_info('Archive integrity verified: {}'.format(location))
+        else:
+            # Show commands that would be executed
+            exists_cmd = self._compose_file_exists_command()
+            if destination_host:
+                self.logger.log_info('Would run: ssh {} {}'.format(destination_host, exists_cmd))
+            else:
+                self.logger.log_info('Would run: {}'.format(exists_cmd))
+
+            verify_commands = self._compose_verify_commands()
+            self.logger.log_info('Would run: {}'.format(' '.join(verify_commands[0])))
+
+        return errors
+
 
 class ArchiveFiles(ArchiveStuff):
 
@@ -383,6 +486,16 @@ class ArchiveFiles(ArchiveStuff):
         ]
         return tar_cmd if use_shell is False else self._convert_command_to_string(tar_cmd)
 
+    def _compose_base_verify_command(self):
+        """Compose tar archive verification command."""
+        destination_file = self.config['destination-file']
+        decompression = self._get_decompression_command()
+
+        if decompression:
+            return '{} {} | tar -t > /dev/null'.format(decompression, destination_file)
+        else:
+            return 'tar -tf {} > /dev/null'.format(destination_file)
+
 
 class ArchiveMySQL(ArchiveStuff):
 
@@ -418,6 +531,18 @@ class ArchiveMySQL(ArchiveStuff):
         ]
         return mysqldump_cmd if use_shell is False else self._convert_command_to_string(mysqldump_cmd)
 
+    def _compose_base_verify_command(self):
+        """Compose SQL dump verification command (decompression test only)."""
+        destination_file = self.config['destination-file']
+        decompression = self._get_decompression_command()
+
+        if decompression:
+            # Decompress and discard output - verifies integrity
+            return '{} {} > /dev/null'.format(decompression, destination_file)
+        else:
+            # Uncompressed file - just check it's readable
+            return 'test -r {}'.format(destination_file)
+
 
 class ArchivePostgreSQL(ArchiveStuff):
 
@@ -446,3 +571,15 @@ class ArchivePostgreSQL(ArchiveStuff):
             '--no-password'
         ]
         return pgdump_cmd if use_shell is False else self._convert_command_to_string(pgdump_cmd)
+
+    def _compose_base_verify_command(self):
+        """Compose SQL dump verification command (decompression test only)."""
+        destination_file = self.config['destination-file']
+        decompression = self._get_decompression_command()
+
+        if decompression:
+            # Decompress and discard output - verifies integrity
+            return '{} {} > /dev/null'.format(decompression, destination_file)
+        else:
+            # Uncompressed file - just check it's readable
+            return 'test -r {}'.format(destination_file)
