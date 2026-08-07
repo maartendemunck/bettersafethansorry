@@ -373,6 +373,10 @@ class ArchiveStuff(Action):
             # the archive was created with multiple blocks; harmless no-op
             # otherwise.
             return 'xz -dc -T0'
+        elif 'zstd' in compression_lower or 'zst' in compression_lower:
+            # zstd decompression is single-threaded by design (and already
+            # very fast), so there's no parallel variant to prefer here.
+            return 'zstd -dc'
         else:
             # Unknown compression, try to infer from the command
             return None
