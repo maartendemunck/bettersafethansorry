@@ -339,7 +339,7 @@ class ArchiveStuff(Action):
     def _get_decompression_command(self):
         """Get the decompression command based on config.
 
-        Returns the decompression command (e.g., 'gunzip -c', 'bunzip2 -c')
+        Returns the decompression command (e.g., 'gzip -dc', 'pbzip2 -dc')
         or None if no compression is used.
         """
         # Use the same logic as backup to determine compression
@@ -357,11 +357,22 @@ class ArchiveStuff(Action):
         # Map compression commands to decompression commands
         compression_lower = compression.lower()
         if 'gzip' in compression_lower or compression_lower.startswith('gz'):
-            return 'gunzip -c'
+            # Prefer pigz (parallel gzip) when available on the host that
+            # will actually run the verify command.
+            gzip_cmd = 'pigz' if bsts_utils.command_exists(
+                self.config['destination-host'], 'pigz') else 'gzip'
+            return '{} -dc'.format(gzip_cmd)
         elif 'bzip2' in compression_lower or 'bz2' in compression_lower:
-            return 'bunzip2 -c'
+            # Prefer pbzip2 (parallel bzip2) when available on the host that
+            # will actually run the verify command.
+            bzip2_cmd = 'pbzip2' if bsts_utils.command_exists(
+                self.config['destination-host'], 'pbzip2') else 'bzip2'
+            return '{} -dc'.format(bzip2_cmd)
         elif 'xz' in compression_lower:
-            return 'xz -dc'
+            # xz supports multi-threaded decompression natively (-T0) when
+            # the archive was created with multiple blocks; harmless no-op
+            # otherwise.
+            return 'xz -dc -T0'
         else:
             # Unknown compression, try to infer from the command
             return None

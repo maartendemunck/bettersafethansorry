@@ -60,6 +60,19 @@ def is_file(host, filename):
     return exists
 
 
+def command_exists(host, command):
+    check_cmd = 'command -v {} > /dev/null 2>&1'.format(command)
+    if host is not None:
+        returncode = subprocess.run(
+            ['ssh', host, check_cmd],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+    else:
+        returncode = subprocess.run(
+            ['sh', '-c', check_cmd],
+            stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL).returncode
+    return returncode == 0
+
+
 def remove_file(host, filename):
     if host is not None:
         returncode = subprocess.run(
