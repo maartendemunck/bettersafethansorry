@@ -5,6 +5,22 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2026-09-02
+
+### Added
+
+- **`source-container` support for `RsyncFiles`**
+  - Rsyncs data straight out of a named Docker volume mounted in a container, without needing host-level filesystem access to the volume
+  - Reuses the `[user@]container` syntax already used by `ArchiveFiles`/`ArchivePostgreSQL`
+  - Implemented via rsync's `--rsync-path`, so the remote `rsync --server` process is launched with `docker exec -i [--user] <container> rsync` instead of running directly on `source-host`
+  - Requires `rsync` to be installed inside the container image and requires `source-host` to be set (raises a config error otherwise, since silently falling back to a local/host-level sync would be a dangerous footgun for a backup tool)
+- **`preserve-ownership` option for `RsyncFiles`** (default `true`, matching previous behaviour)
+  - Set to `false` to add `--no-owner --no-group`, needed when the source's numeric uid/gid (e.g. a container-internal user) doesn't map to a real account/group the receiving `destination-host` user can `chown`/`chgrp` to
+- **`fake-super` option for `RsyncFiles`** (default `false`)
+  - Adds `--fake-super`, so uid/gid/permission bits that the receiving `destination-host` user isn't privileged enough to actually set (e.g. a container-internal user/group) are stashed in a `user.rsync.%stat` extended attribute instead of being dropped
+  - Preferred over `preserve-ownership: false` when the original ownership metadata is worth keeping for a future restore (requires the destination filesystem to support extended attributes)
+  - Note: `--fake-super` only covers owner/group/permission bits, not modification times — setting an arbitrary mtime on a file/directory still requires actually owning it, regardless of `--fake-super`. If the top-level destination directory isn't owned by the `destination-host` rsync user, expect `failed to set times on "...": Operation not permitted (1)` (exit code 23) on that directory even though the files underneath transfer correctly; fix by making that user the owner of the destination directory
+
 ## [0.3.1] - 2026-02-04
 
 ### Added

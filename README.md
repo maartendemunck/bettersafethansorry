@@ -25,40 +25,42 @@ These requirements yield this configuration file `~/.config/bettersafethansorry/
 ```yaml
 backups:
   wormwood-image:
-    description: Full filesystem backup of Wormwood
+    description: full filesystem backup of Wormwood
     actions:
-      - description: Backup / filesystem
+      - description: backup / filesystem
         action: ArchiveFiles
         all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /
-        destination-host: maarten@calvin.home.vijfendertig.be
         destination-file: /srv/backup/hosts/wormwood/images/wormwood-root.tar.bz2
-        destination-compression: /usr/bin/bzip2 -9
-        keep: 3
+        destination-compression: pbzip2 -9
+        keep: 2
+        retry: 3
         excludes:
           - ./sys
-      - description: Backup /boot filesystem
+          - ./var/cache/apt/archives
+          - ./var/lib/docker
+          - ./var/lib/samba/private/msg.sock
+          - ./var/log/journal
+      - description: backup /boot filesystem
         action: ArchiveFiles
         all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /boot/
-        destination-host: maarten@calvin.home.vijfendertig.be
         destination-file: /srv/backup/hosts/wormwood/images/wormwood-boot.tar.bz2
-        destination-compression: /usr/bin/bzip2 -9
-        keep: 3
-      - description: Backup /boot/efi filesystem
+        destination-compression: pbzip2 -9
+        keep: 2
+      - description: backup /boot/efi filesystem
         action: ArchiveFiles
         all-or-nothing: true
         one-file-system: true
         source-host: root@wormwood.home.vijfendertig.be
         source-directory: /boot/efi/
-        destination-host: maarten@calvin.home.vijfendertig.be
         destination-file: /srv/backup/hosts/wormwood/images/wormwood-efi.tar.bz2
-        destination-compression: /usr/bin/bzip2 -9
-        keep: 3
+        destination-compression: pbzip2 -9
+        keep: 2
   wormwood-maartenathome:
     description: maarten@home website data
     actions:
@@ -68,15 +70,29 @@ backups:
         source-container: maartenathome-maartenathome-postgres-1
         source-database: maartenathome@maartenathome
         destination-file: /srv/backup/hosts/wormwood/data/maartenathome-database.sql.bz2
-        destination-compression: bzip2
+        destination-compression: pbzip2 -9
         keep: 3
-      - description: Archive maarten@home django media
+      - description: Archive maarten@home django media (option 1)
         action: ArchiveFiles
         source-host: maarten@wormwood.home.vijfendertig.be
         source-container: django@maartenathome-maartenathome-django-1
         source-directory: /srv/django/media/
         destination-file: /srv/backup/hosts/wormwood/data/maartenathome-media.tar.bz2
-        destination-compression: bzip2
+        destination-compression: pbzip2 -9
+        keep: 3
+      - description: Synchronize maarten@home django media (option 2, part 1)
+        action: RsyncFiles
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-container: django@maartenathome-maartenathome-django-1
+        source-directory: /srv/django/media/
+        destination-directory: /srv/backup/staging/hosts/wormwood/data/maartenathome-media/
+        fake-super: true
+      - description: Archive syncronized maarten@home django media (option 2, part 2)
+        action: ArchiveFiles
+        source-host: maarten@wormwood.home.vijfendertig.be
+        source-directory: /srv/backup/staging/hosts/wormwood/data/maartenathome-media/
+        destination-file: /srv/backup/hosts/wormwood/data/maartenathome-media-synchronized.tar.bz2
+        destination-compression: pbzip2 -9
         keep: 3
 loggers:
   - logger: File
@@ -84,10 +100,10 @@ loggers:
     append: true
 ```
 
-The configuration file defines three backups:
+The configuration file defines two backups:
 
-- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). The backups are made to my desktop PC and because I have a decent LAN at home and the CPU of my desktop PC is much more performant than the CPU of the mini server, I send the backups as (uncompressed) tar files to my desktop PC and bzip2 them there. The `all-or-nothing: true` flag ensures that all three filesystem backups are consistent: all backups are first prepared (creating temporary `.tmp` files), and only if all preparations succeed are the backups committed (rotating old backups and moving `.tmp` files to their final names). If any preparation fails, all temporary files are rolled back, ensuring you never have a mix of old and new backups from different points in time.
-- `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off). Again, compression is done on the system running the backup.
+- `wormwood-image` makes a full filesystem backup, split in one `.tar.bz2` archive for each filesystem (`/`, `/boot` and `/boot/efi`). I always run this backup from my desktop PC (rather than on wormwood itself), so no `destination-host` is needed: `source-host` fetches the (uncompressed) tar stream from wormwood over ssh, and since my desktop PC has a decent LAN connection and a much more performant CPU than the mini server, `destination-compression` bzip2s it locally on the desktop instead of taxing the mini server's CPU. The `all-or-nothing: true` flag ensures that all three filesystem backups are consistent: all backups are first prepared (creating temporary `.tmp` files), and only if all preparations succeed are the backups committed (rotating old backups and moving `.tmp` files to their final names). If any preparation fails, all temporary files are rolled back, ensuring you never have a mix of old and new backups from different points in time.
+- `wormwood-maartenathome` makes a backup of the Django database in the maarten@home PostgreSQL container and the data directory in the maarten@home Django container. The backups are made to whatever system runs the backup (the data is important and the backup is not that big, so I sometimes just backup to my laptop if my desktop is off). Again, compression is done on the system running the backup. The example shows two approaches to make a snapshot of the Django media directory: option 1 makes a snapshot directly from the source Docker container, while option 2 first synchronizes the source to a local staging directory using `RsyncFiles` and then makes a snapshot of that local directory with a second `ArchiveFiles` action, decreasing network traffic significantly in case the data is mostly static. Both approaches use `source-container` to reach into the container via `docker exec` on `source-host` (so `rsync` must be installed inside the container image, and the `source-host` user must be allowed to run `docker exec`); the second, archiving action of option 2 no longer needs `source-container`, since by then the data is already available locally. The container's files are typically owned by container-internal uids/gids that don't correspond to real accounts on the system running the backup, so `fake-super: true` is set on the `RsyncFiles` step to preserve that ownership information in an extended attribute instead of failing to `chown`/`chgrp` it for real.
 
 Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and subsequent invocations just add their logs to the file.
 
