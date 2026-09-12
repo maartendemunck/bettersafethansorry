@@ -114,7 +114,7 @@ Logs are stored in a simple text file `~/.local/log/bettersafethansorry.log` and
 `bsts verify wormwood-image` and `bsts verify wormwood-maartenathome` verify the backups:
 
 - Git-annex repositories: Checks for missing or corrupted files, checksum mismatches, and repository consistency using `git annex fsck`
-- Archive backups (ArchiveFiles, ArchiveMySQL, ArchivePostgreSQL): Verifies backup file exists and validates compression/archive integrity by decompressing and (for tar archives) listing contents
+- Archive backups (ArchiveFiles, ArchiveMySQL, ArchiveMariaDB, ArchivePostgreSQL): Verifies backup file exists and validates compression/archive integrity by decompressing and (for tar archives) listing contents
 
 Both backups (do) and verification (verify) return exit code 0 on success or 1 if errors are found.
 

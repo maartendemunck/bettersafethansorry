@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.3] - 2026-09-12
+
+### Added
+
+- **`ArchiveMariaDB` action**
+  - MariaDB 12.3 replaces `mysqldump` with `mariadb-dump` (same flags), so `ArchiveMySQL` can no longer be used to back up newer MariaDB servers
+  - `ArchiveMariaDB` subclasses `ArchiveMySQL` and only overrides the `dump_executable` class attribute (`mariadb-dump` instead of `mysqldump`); every other behaviour (config keys, compression, verification, all-or-nothing support) is inherited unchanged
+
 ## [0.3.2] - 2026-09-02
 
 ### Added

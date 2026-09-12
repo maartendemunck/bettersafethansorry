@@ -514,6 +514,8 @@ class ArchiveFiles(ArchiveStuff):
 
 class ArchiveMySQL(ArchiveStuff):
 
+    dump_executable = 'mysqldump'
+
     required_keys = [
         'source-database'
     ]
@@ -529,11 +531,11 @@ class ArchiveMySQL(ArchiveStuff):
         return True
 
     def _compose_base_archive_command(self, use_shell):
-        # Compose pg_dump command.
+        # Compose mysqldump (or mariadb-dump) command.
         (user, password, database) = bsts_utils.split_user_password_host(
             self.config['source-database'], True, True, True)
-        mysqldump_cmd = [
-            'mysqldump',
+        dump_cmd = [
+            self.dump_executable,
             *(['--user={}'.format(user)] if user is not None else []),
             *(['--password={}'.format(password)]
               if password is not None and use_shell is False else []),
@@ -544,7 +546,7 @@ class ArchiveMySQL(ArchiveStuff):
             '--events',
             '{}'.format(database),
         ]
-        return mysqldump_cmd if use_shell is False else self._convert_command_to_string(mysqldump_cmd)
+        return dump_cmd if use_shell is False else self._convert_command_to_string(dump_cmd)
 
     def _compose_base_verify_command(self):
         """Compose SQL dump verification command (decompression test only)."""
@@ -557,6 +559,11 @@ class ArchiveMySQL(ArchiveStuff):
         else:
             # Uncompressed file - just check it's readable
             return 'test -r {}'.format(destination_file)
+
+
+class ArchiveMariaDB(ArchiveMySQL):
+
+    dump_executable = 'mariadb-dump'
 
 
 class ArchivePostgreSQL(ArchiveStuff):
