@@ -16,6 +16,7 @@ class RsyncFiles(Action):
         'follow-symlinks': False,
         'optimize-renames': False,
         'preserve-ownership': True,
+        'preserve-hard-links': False,
         'fake-super': False,
         'excludes': []
     }
@@ -84,6 +85,7 @@ class RsyncFiles(Action):
               if self.config['optimize-renames'] else []),
             *(['--no-owner', '--no-group']
               if not self.config['preserve-ownership'] else []),
+            *(['--hard-links'] if self.config['preserve-hard-links'] else []),
             *(['--fake-super'] if self.config['fake-super'] else []),
             source,
             destination
