@@ -12,6 +12,14 @@ configuration = None
 logger = None
 
 
+def get_version():
+    try:
+        from importlib import metadata
+        return metadata.version('bettersafethansorry')
+    except Exception:
+        return 'unknown'
+
+
 def main():
     global configuration, logger
 
@@ -62,8 +70,11 @@ def main():
 
 
 def parse_command_line_arguments():
+    version = get_version()
     parser = argparse.ArgumentParser(
-        description='Better Safe Than Sorry. Custom backups made easy.')
+        description=f'Better Safe Than Sorry {version}. Custom backups made easy.')
+    parser.add_argument('-V', '--version', action='version',
+                        version=f'%(prog)s {version}')
     parser.add_argument('command',
                         help="Command ('list', 'status', 'show', 'do' or 'verify')")
     parser.add_argument('backup', nargs='?',
