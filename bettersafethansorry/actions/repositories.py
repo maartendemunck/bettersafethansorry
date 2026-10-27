@@ -1,3 +1,5 @@
+import os
+
 from bettersafethansorry.actions import Action
 import bettersafethansorry.utilities as bsts_utils
 
@@ -133,4 +135,79 @@ class UpdateGitAnnex(Action):
             self.logger.log_info('Would run: {}{}'.format(
                 ' '.join(command),
                 ' (in {})'.format(cwd) if cwd else ''))
+        return errors
+
+
+class MirrorGitRepository(Action):
+
+    required_keys = [
+        'source-directory',
+        'destination-directory'
+    ]
+
+    optional_keys = {
+        'source-host': None
+    }
+
+    def __init__(self, action_config, logger):
+        super().__init__(action_config, logger,
+                         MirrorGitRepository.required_keys, MirrorGitRepository.optional_keys)
+
+    def has_do(self):
+        return True
+
+    def _source(self):
+        if self.config['source-host'] is not None:
+            return '{}:{}'.format(self.config['source-host'], self.config['source-directory'])
+        return self.config['source-directory']
+
+    def _is_cloned(self):
+        return os.path.exists(os.path.join(self.config['destination-directory'], 'HEAD'))
+
+    def _compose_do_command(self):
+        destination = self.config['destination-directory']
+        if self._is_cloned():
+            return ['git', '-C', destination, 'remote', 'update', '--prune']
+        return ['git', 'clone', '--mirror', self._source(), destination]
+
+    def do(self, dry_run):
+        self.logger.log_debug(
+            "Configuring '{}' action".format(self.__class__.__name__))
+        command = self._compose_do_command()
+        self.logger.log_debug(
+            "Executing '{}' action".format(self.__class__.__name__))
+        errors = []
+        if not dry_run:
+            try:
+                exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                    [command], None, self.logger)
+                errors.extend(bsts_utils.log_subprocess_errors(
+                    [command], exit_codes, stdouts, stderrs, self.logger))
+            except FileNotFoundError as e:
+                self.logger.log_error(str(e))
+                errors.append(str(e))
+        else:
+            self.logger.log_info('Would run: {}'.format(' '.join(command)))
+        return errors
+
+    def has_verify(self):
+        return True
+
+    def verify(self, dry_run):
+        self.logger.log_debug(
+            "Verifying '{}' action".format(self.__class__.__name__))
+        command = ['git', '-C', self.config['destination-directory'],
+                   'fsck', '--no-dangling']
+        errors = []
+        if not dry_run:
+            try:
+                exit_codes, stdouts, stderrs = bsts_utils.run_processes(
+                    [command], None, self.logger)
+                errors.extend(bsts_utils.log_subprocess_errors(
+                    [command], exit_codes, stdouts, stderrs, self.logger))
+            except FileNotFoundError as e:
+                self.logger.log_error(str(e))
+                errors.append(str(e))
+        else:
+            self.logger.log_info('Would run: {}'.format(' '.join(command)))
         return errors
