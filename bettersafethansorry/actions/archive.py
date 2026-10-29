@@ -566,6 +566,71 @@ class ArchiveMariaDB(ArchiveMySQL):
     dump_executable = 'mariadb-dump'
 
 
+class ArchiveDconf(ArchiveStuff):
+
+    required_keys = [
+        'source-directory'
+    ]
+
+    optional_keys = {
+    }
+
+    def __init__(self, action_config, logger):
+        super().__init__(action_config, logger,
+                         ArchiveDconf.required_keys, ArchiveDconf.optional_keys)
+        source_directory = self.config['source-directory']
+        if not (source_directory.startswith('/') and source_directory.endswith('/')):
+            self.logger.log_error(
+                "Parameter 'source-directory' ('{}') must start and end with '/' in '{}' config".format(
+                    source_directory, self.__class__.__name__))
+            raise ValueError(source_directory)
+
+    def has_do(self):
+        return True
+
+    def _compose_base_archive_command(self, use_shell):
+        # Compose dconf dump command.
+        directory = self.config['source-directory']
+        dconf_cmd = ['dconf', 'dump', directory if use_shell is False else "'{}'".format(directory)]
+        return dconf_cmd if use_shell is False else self._convert_command_to_string(dconf_cmd)
+
+    def _compose_non_empty_command(self, filename):
+        decompression = self._get_decompression_command()
+        if decompression:
+            return '{} {} | grep -q .'.format(decompression, filename)
+        else:
+            return 'test -s {}'.format(filename)
+
+    def prepare(self, dry_run):
+        """Prepare phase: create the dump and fail if it is empty."""
+        errors = super().prepare(dry_run)
+        if len(errors) > 0 or dry_run:
+            return errors
+        # 'dconf dump' succeeds with an empty dump for non-existing directories.
+        check_cmd = self._compose_non_empty_command(
+            '{}.tmp'.format(self.config['destination-file']))
+        destination_host = self.config['destination-host']
+        command = ['ssh', destination_host, check_cmd] if destination_host else ['sh', '-c', check_cmd]
+        exit_codes, _, _ = bsts_utils.run_processes([command], None, self.logger)
+        if exit_codes[0] != 0:
+            error_msg = "Dump of dconf directory '{}' is empty".format(
+                self.config['source-directory'])
+            self.logger.log_error(error_msg)
+            errors.append(error_msg)
+        return errors
+
+    def _compose_base_verify_command(self):
+        """Compose dconf dump verification command (integrity and non-empty dump)."""
+        destination_file = self.config['destination-file']
+        decompression = self._get_decompression_command()
+
+        if decompression:
+            return '{0} {1} > /dev/null && {2}'.format(
+                decompression, destination_file, self._compose_non_empty_command(destination_file))
+        else:
+            return self._compose_non_empty_command(destination_file)
+
+
 class ArchivePostgreSQL(ArchiveStuff):
 
     required_keys = [

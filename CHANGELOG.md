@@ -5,6 +5,15 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.7] - 2026-10-29
+
+### Added
+
+- **`ArchiveDconf` action**
+  - Archives a dconf directory with `dconf dump`; same compression, `destination-host`, `keep` and `source-host` options as the other `Archive*` actions
+  - Parameters: `source-directory` (dconf directory, must start and end with `/`), `destination-file`
+  - Fails (and rolls back, keeping existing backups) when the dump is empty, as `dconf dump` succeeds for non-existing directories; `verify` also checks compression integrity and non-empty content
+
 ## [0.3.6] - 2026-10-27
 
 ### Added
